@@ -3,8 +3,6 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { MongooseModule } from "@nestjs/mongoose";
 import { User, UserSchema } from "../schemas/User.schema";
-import { CacheModule } from '@nestjs/cache-manager';
-// import process from "process";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigModule } from "@nestjs/config";
 import { FirebaseModule } from "../firebase/firebase.module";

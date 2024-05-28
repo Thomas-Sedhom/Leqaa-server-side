@@ -1,5 +1,4 @@
 import { IsEmail, IsNotEmpty, Matches } from "class-validator";
-
 export class SignupDto{
   @IsNotEmpty()
   @IsEmail()

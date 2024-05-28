@@ -9,8 +9,8 @@ export const hashPass = async (password: string): Promise<string> => {
 
 export const comparePass = async (password: string, hashPassword: string): Promise<boolean> => {
   const isMatch = await bcrypt.compare(password, hashPassword);
-  // if (!isMatch) {
-  //   throw new HttpException('Password is incorrect', HttpStatus.BAD_REQUEST);
-  // }
+  if (!isMatch) {
+    throw new HttpException('Password is incorrect', HttpStatus.BAD_REQUEST);
+  }
   return isMatch; // Explicitly return true/false based on comparison
 };

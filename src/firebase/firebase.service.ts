@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { app } from './firebase.config';
+import firebase from "firebase/compat";
+import Storage = firebase.storage.Storage;
 
 const metadata = { contentType: 'image/png' };
 
@@ -18,7 +20,6 @@ export class FirebaseService {
 
   async uploadImageToCloud(files: Express.Multer.File[], url: string): Promise<string> {
      let downloadURL: string = ''
-
     for (const file of files) {
       if (!file || !file.buffer) {
         throw new Error('No file uploaded');
@@ -35,7 +36,6 @@ export class FirebaseService {
         console.error(`Error uploading file ${file.originalname}: ${err.message}`);
       }
     }
-
     return downloadURL;
   }
 }

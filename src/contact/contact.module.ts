@@ -3,10 +3,8 @@ import { ContactController } from './contact.controller';
 import { ContactService } from './contact.service';
 import { MongooseModule } from "@nestjs/mongoose";
 import { Contact, ContactSchema } from "../schemas/Contact.schema";
-import { UserService } from "../user/user.service";
 import { UserModule } from "../user/user.module";
 import { AdminModule } from "../admin/admin.module";
-
 @Module({
   controllers: [ContactController],
   providers: [ContactService],

@@ -130,12 +130,6 @@ export class User {
   otherInfo: string;
   @Prop({  default: null  })
   livingAbroad: boolean;
-  @Prop({  default: [] })
-  sentRequests: string[];
-  @Prop({  default: [] })
-  receivedRequests: string[];
-  @Prop({  default: [] })
-  connections: string[];
   @Prop({  default: "user" })
   role: string;
 }

@@ -5,8 +5,8 @@ import { MongooseModule } from "@nestjs/mongoose";
 import { User, UserSchema } from "../schemas/User.schema";
 import { UserModule } from "../user/user.module";
 import { Admin, AdminSchema } from "../schemas/Admin.schema";
-import { ContactModule } from "../contact/contact.module";
-import { AuthModule } from "../auth/auth.module";
+import { Connection, ConnectionSchema } from "../schemas/Connection.schema";
+import { PendingConnection, PendingConnectionSchema } from "../schemas/PendingConnection.schema";
 
 
 @Module({
@@ -16,6 +16,8 @@ import { AuthModule } from "../auth/auth.module";
     MongooseModule.forFeature([
       {name: User.name, schema: UserSchema},
       {name: Admin.name, schema: AdminSchema},
+      {name: Connection.name, schema: ConnectionSchema },
+      {name: PendingConnection.name, schema: PendingConnectionSchema }
     ]),
     UserModule,
 

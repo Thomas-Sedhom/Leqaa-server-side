@@ -23,11 +23,9 @@ import { AdminDto } from "./Dtos/admin.dto";
 import { SuperAdminGuard } from "../shared/guards/super.guard";
 import { JoiValidationPipe } from "../shared/pipes/joiValidation.pipe";
 import { AdminJoiSchema } from "../schemas/Admin.schema";
-// import { EmailValidationPipe } from "./pipes/emailValidation.pipe";
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth_service: AuthService, private readonly firebase_service: FirebaseService) {}
-  // @UsePipes(EmailValidationPipe)
   @Post("signup")
   async signup(@Body() signUpDto: SignupDto): Promise<string> {
     await this.auth_service.initiateRegistration(signUpDto);
@@ -103,8 +101,6 @@ export class AuthController {
       res.send(error.message)
     }
   }
-
-  // @UsePipes(EmailValidationPipe)
   @UsePipes(new JoiValidationPipe(AdminJoiSchema))
   @UseGuards(SuperAdminGuard)
   @Post("admin")

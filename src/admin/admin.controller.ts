@@ -1,13 +1,12 @@
 import { Controller, Get, Param, UseGuards } from "@nestjs/common";
 import { AdminGuard } from "../shared/guards/admin.guard";
 import { AdminService } from "./admin.service";
-import { User } from "../schemas/User.schema";
 @UseGuards(AdminGuard)
 @Controller('admin')
 export class AdminController {
   constructor(private readonly admin_Service: AdminService) {}
   @Get('notApprovedUsers')
-  async notApprovedUsers(){
+  async notApprovedUsers(): Promise<any>{
     try{
       const users = await this.admin_Service.getNotApprovedUsers()
       return users
@@ -25,18 +24,36 @@ export class AdminController {
     }
   }
   @Get('connections')
-  async connections(): Promise<User[]>{
+  async connections(): Promise<any>{
     try{
-      const connections: User[] = await this.admin_Service.getUsersConnections();
+      const connections = await this.admin_Service.getUsersConnections();
       return connections
     }catch (error){
       return error
     }
   }
   @Get('sentRequests')
-  async requests(): Promise<User[]>{
+  async requests(): Promise<any>{
     try{
-      const connections: User[] = await this.admin_Service.getUsersSentRequests();
+      const connections = await this.admin_Service.getUsersSentRequests();
+      return connections
+    }catch (error){
+      return error
+    }
+  }
+  @Get('connections/:id')
+  async getConnectionUser(@Param('id') id: string):Promise<any>{
+    try{
+      const connections = await this.admin_Service.getUserById(id);
+      return connections
+    }catch (error){
+      return error
+    }
+  }
+  @Get('sentRequests/:id')
+  async getRequestUser(@Param('id') id: string): Promise<any>{
+    try{
+      const connections = await this.admin_Service.getUserById(id);
       return connections
     }catch (error){
       return error
