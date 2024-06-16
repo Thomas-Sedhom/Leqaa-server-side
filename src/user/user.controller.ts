@@ -13,23 +13,67 @@ export class UserController {
     try{
       console.log(req.user.gender, "name")
       const timeline = await this.user_service.getTimeline(timelineDto, req.user.gender);
+      console.log(timeline)
       return timeline
     }catch(error){
       return error.message
     }
   }
-  @UseGuards(IsWomanGuard)
-  @Get("hiddenProfile")
-  async hiddenProfile(@Req() req: CustomRequest): Promise<string>{
-    await this.user_service.hiddenProfile(req.user._id);
-    return "your profile is hidden"
+  @Get("isCompleted")
+  async isCompleted(@Req() req: CustomRequest): Promise<boolean>{
+    try{
+      const isCompleted: boolean = req.user.isCompleted;
+      return isCompleted
+    }catch (err){
+      return err;
+    }
+}
+  @Get("isApproved")
+  async isApproved(@Req() req: CustomRequest): Promise<boolean>{
+    try{
+      const isApproved: boolean = req.user.isApprove;
+      return isApproved
+    }catch (err){
+      return err;
+    }
+  }
+  @Get("gender")
+  async gender(@Req() req: CustomRequest): Promise<string>{
+    try{
+      const gender: string = req.user.gender;
+      return gender
+    }catch (err){
+      return err;
+    }
   }
   @UseGuards(IsWomanGuard)
-  @Get("visibleProfile")
-  async visibleProfile(@Req() req: CustomRequest):Promise<string>{
-    await this.user_service.visibleProfile(req.user._id);
-    return "your profile is visible"
+  @Get("getProfileStatus")
+  async getProfileStatus(@Req() req: CustomRequest): Promise<boolean>{
+    try{
+      const status: boolean= req.user.isHidden;
+      return status;
+    }catch(err){
+      return err;
+    }
   }
+  @UseGuards(IsWomanGuard)
+  @Get("changeProfileStatus")
+  async profileStatus(@Req() req: CustomRequest): Promise<boolean>{
+    try{
+      const userID = req.user._id;
+      const status: boolean= req.user.isHidden;
+      const res: boolean = await this.user_service.profileStatus(userID, status);
+      return res;
+    }catch(err){
+      return err;
+    }
+  }
+  // @UseGuards(IsWomanGuard)
+  // @Get("visibleProfile")
+  // async visibleProfile(@Req() req: CustomRequest):Promise<string>{
+  //   await this.user_service.visibleProfile(req.user._id);
+  //   return "your profile is visible"
+  // }
   @Get("timeline/:id")
   async getUser(@Param('id') id: string): Promise<any>{
     try{
@@ -99,6 +143,12 @@ export class UserController {
       return error.message;
     }
   }
+  @Get("findConnection/:id")
+  async findConnection(@Param('id') user2: string , @Req() req: CustomRequest): Promise<string>{
+    const user1 = req.user._id.toString();
+    const check: string = await this.user_service.checkConnection(user1, user2) ;
+    return check;
+  }
   @Get("connections")
    async getConnections(@Req() req: CustomRequest): Promise<any>{
     try{
@@ -113,6 +163,15 @@ export class UserController {
   async getConnectionUSer(@Param('id') id: string): Promise<any>{
     try{
       const user = await this.user_service.getUser(id);
+      return user
+    }catch(error){
+      return error.message;
+    }
+  }
+  @Get("profile")
+  async getProfile(@Req() req: CustomRequest): Promise<any>{
+    try{
+      const user = req.user;
       return user
     }catch(error){
       return error.message;

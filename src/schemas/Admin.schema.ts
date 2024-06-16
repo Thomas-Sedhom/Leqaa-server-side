@@ -3,6 +3,8 @@ import * as Joi from '@hapi/joi';
 import { RoleEnum } from "../enums/role.enum";
 @Schema()
 export class Admin {
+  @Prop({ required: true })
+  name: string;
   @Prop({ required: true, unique: true })
   email: string;
   @Prop({ required: true })
@@ -12,6 +14,7 @@ export class Admin {
 }
 export const AdminSchema = SchemaFactory.createForClass(Admin);
 export const AdminJoiSchema: Joi.ObjectSchema<Admin> = Joi.object({
+  name: Joi.string().required().messages({"message": "name is required" }),
   email: Joi.string().required().email().messages({ "message": "email is required" }),
   password: Joi.string().required()
     .pattern(/(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$_#!%*?&]{8,}$/)

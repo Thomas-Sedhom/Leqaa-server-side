@@ -15,4 +15,8 @@ export class ContactService {
     const allMessages = await this.contact_model.find();
     return allMessages
   }
+  async deleteMessage(id:  string): Promise<string>{
+    await this.contact_model.findByIdAndDelete(id);
+    return "message deleted successfully";
+  }
 }

@@ -29,43 +29,48 @@ export class UserService {
       query.gender = GenderEnum.انثى
       console.log(gender, query.gender, 2)
     }
-    if (filterDto.governorate) {
-      query.governorate = filterDto.governorate;
+    if(filterDto){
+      if (filterDto.governorate !== undefined && filterDto.governorate != "") {
+        query.governorate = filterDto.governorate;
+      }
+      if (filterDto.minAge && filterDto.maxAge) {
+        query.age = { $gte: parseInt(filterDto.minAge), $lte: parseInt(filterDto.maxAge) };
+      }
+      if (filterDto.apartment !== undefined && filterDto.apartment !== "") {
+        query.apartment = filterDto.apartment==="true";
+      }
+      if (filterDto.car !== undefined && filterDto.car !== "") {
+        query.car = filterDto.car==="true";
+      }
+      if (filterDto.job !== undefined && filterDto.job !== "") {
+        query.job = filterDto.job==="true";
+      }
+      if (filterDto.businessOwner !== undefined && filterDto.businessOwner !== "") {
+        query.businessOwner = filterDto.businessOwner==="true";
+      }
+      if (filterDto.marriedBefore !== undefined && filterDto.marriedBefore !== "") {
+        query.marriedBefore = filterDto.marriedBefore==="true";
+      }
+      if (filterDto.children !== undefined && filterDto.children !== "") {
+        query.children = filterDto.children==="true";
+      }
+      if (filterDto.schoolType !== undefined &&filterDto.schoolType != "") {
+        query.schoolType = filterDto.schoolType;
+      }
+      if (filterDto.religion !== undefined && filterDto.religion != "") {
+        query.religion = filterDto.religion;
+      }
+      // if (filterDto.habits != "") {
+      //   query.habits = { $in: filterDto.habits.split(',') };
+      // }
+      if (filterDto.livingAbroad !== undefined && filterDto.livingAbroad !== "") {
+        query.livingAbroad = filterDto.livingAbroad === "true";
+      }
     }
-    if (filterDto.minAge && filterDto.maxAge) {
-      query.age = { $gte: parseInt(filterDto.minAge), $lte: parseInt(filterDto.maxAge) };
-    }
-    if (filterDto.apartment !== undefined) {
-      query.apartment = filterDto.apartment==="true";
-    }
-    if (filterDto.car !== undefined) {
-      query.car = filterDto.car==="true";
-    }
-    if (filterDto.job !== undefined) {
-      query.job = filterDto.job==="true";
-    }
-    if (filterDto.businessOwner !== undefined) {
-      query.businessOwner = filterDto.businessOwner==="true";
-    }
-    if (filterDto.marriedBefore !== undefined) {
-      query.marriedBefore = filterDto.marriedBefore==="true";
-    }
-    if (filterDto.children !== undefined) {
-      query.children = filterDto.children==="true";
-    }
-    if (filterDto.schoolType) {
-      query.schoolType = filterDto.schoolType;
-    }
-    if (filterDto.religion) {
-      query.religion = filterDto.religion;
-    }
-    if (filterDto.habits) {
-      query.habits = { $in: filterDto.habits.split(',') };
-    }
-    if (filterDto.livingAbroad !== undefined) {
-      query.livingAbroad = filterDto.livingAbroad==="true";
-    }
-    const users = await this.user_model.find(query, 'firstName faceImage lastName');
+
+    console.log(query, filterDto)
+    const users = await this.user_model.find(query, 'fullImage age governorate jobTitle');
+    console.log(users)
     return users;
   }
   async findUserById(id: string){
@@ -73,15 +78,22 @@ export class UserService {
     const user = await this.user_model.findById(updatedId)
     return user
   }
-  async hiddenProfile(id: string): Promise<void>{
-    await this.user_model.findByIdAndUpdate(id, {
-      isHidden: true
-    })
+  async deleteUserById(id: string){
+    const deletedUser = await this.user_model.findByIdAndDelete(id);
+    return deletedUser
   }
-  async visibleProfile(id: string): Promise<void>{
-    await this.user_model.findByIdAndUpdate(id, {
-      isHidden: false
-    })
+  async profileStatus(id: string, status: boolean): Promise<boolean>{
+    if(status == false){
+      await this.user_model.findByIdAndUpdate(id, {
+        isHidden: true
+      })
+      return true;
+    } else{
+      await this.user_model.findByIdAndUpdate(id, {
+        isHidden: false
+      })
+      return false
+    }
   }
   async userSentRequests(userId: string){
     const userObjectId: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(userId);
@@ -90,7 +102,7 @@ export class UserService {
       {receiver: 1, _id: 0}
     ).populate({
       path: 'receiver',
-      select: '_id fullImage firstName lastName',
+      select: '_id firstName lastName age faceImage',
     })
     return pendingConnections
   }
@@ -101,9 +113,25 @@ export class UserService {
       {sender: 1, _id: 0}
     ).populate({
       path: 'sender',
-      select: '_id fullImage firstName lastName',
+      select: '_id firstName lastName age faceImage',
     })
     return pendingConnections
+  }
+  async checkConnection(user1: string, user2: string): Promise<string>{
+    const userObjectId1: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(user1);
+    const userObjectId2: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(user2);
+    const checkConnection = await this.connection_model.findOne({
+      $or: [{ userId1: userObjectId1, userId2: userObjectId2 }, { userId1: userObjectId2, userId2: userObjectId1 }],
+    })
+    const checkPendingConnection = await this.pendingConnection_model.findOne({
+      $or: [{ sender: userObjectId1, receiver: userObjectId2 }, { sender: userObjectId2, receiver: userObjectId1 }],
+    })
+    if (checkConnection)
+      return "connected"
+    else if(checkPendingConnection)
+      return "pending";
+    else
+      return "not_connected"
   }
   async userConnections(userId: string) {
     const userObjectId: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(userId);
@@ -113,12 +141,12 @@ export class UserService {
     })
       .populate({
         path: 'userId1',
-        select: '_id fullImage firstName',
+        select: '_id firstName lastName faceImage age',
         match: {_id: {$ne: userObjectId}}
       })
       .populate({
         path: 'userId2',
-        select: '_id fullImage firstName',
+        select: '_id firstName lastName faceImage age',
         match: {_id: {$ne: userObjectId}}
       })
       .exec();
@@ -133,11 +161,15 @@ export class UserService {
     console.log(connections)
     return connectionResponses;
   }
+  async getAllUserDate(id: string){
+    const user = await this.user_model.findById(id);
+    return user
+  }
   async getUser(id: string): Promise<any>{
     const userData: any = {};
     const user = await this.user_model.findById(id);
-    userData.fullImage = user.fullImage;
-    userData.nationality = user.nationality;
+    userData.faceImage = user.faceImage;
+    userData.governorate = user.governorate;
     userData.address = user.address;
     userData.religion = user.religion;
     userData.qualification = user.qualification;
@@ -146,7 +178,7 @@ export class UserService {
     userData.age = user.age;
     userData.height = user.height;
     userData.weight = user.weight;
-    userData.job = user.jobTitle;
+    userData.jobTitle = user.jobTitle;
     userData.apartment = user.apartment;
     userData.car = user.car;
     userData.habbits = user.habits;
@@ -207,5 +239,9 @@ export class UserService {
     }else{
       throw new BadRequestException("send connection request first")
     }
+  }
+  async getAllUsers(){
+    const allUsers = await this.user_model.find({}, {password: 0});
+    return allUsers
   }
 }

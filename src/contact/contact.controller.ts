@@ -1,11 +1,11 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from "@nestjs/common";
+import {Body, Controller, Get, Param, Post, Req, UseGuards} from "@nestjs/common";
 import { ContactService } from "./contact.service";
 import { ContactDto } from "./Dtos/contact.dto";
 import { AuthGuard } from "../shared/guards/auth.guard";
 import { CustomRequest } from "../shared/interfaces/custom-request.interface";
 import { SuperAdminGuard } from "../shared/guards/super.guard";
 import { IsApprovedUserGuard } from "../shared/guards/isApprovedUser.guard";
-@UseGuards(AuthGuard)
+// @UseGuards(AuthGuard)
 @Controller('contact')
 export class ContactController {
   constructor(private readonly contact_service: ContactService) {}
@@ -16,10 +16,20 @@ export class ContactController {
     const message: string = await this.contact_service.createMessage(contactDto);
     return message
   }
-  @UseGuards(SuperAdminGuard)
+  // @UseGuards(SuperAdminGuard)
   @Get("messages")
   async getAllMessages(){
     const messages = await this.contact_service.getMessages();
     return messages
+  }
+  // @UseGuards(SuperAdminGuard)
+  @Get("/:id")
+  async deleteMessage(@Param("id") id: string) {
+    try{
+      const messages: string = await this.contact_service.deleteMessage(id);
+      return messages
+    }catch (err){
+      return err;
+    }
   }
 }

@@ -21,7 +21,10 @@ export class AdminService {
     return admin;
   }
   async getNotApprovedUsers(){
-    const users = await this.user_model.find({isApprove: false});
+    const users = await this.user_model.find(
+        {isApprove: false, isCompleted: true},
+        {_id: 1, firstName: 1, lastName: 1}
+    );
     return users;
   }
   async approvedUser(id: string){
@@ -52,17 +55,35 @@ export class AdminService {
       .find()
       .populate({
         path: 'sender',
-        select: '_id fullImage firstName lastName',
+        select: '_id firstName lastName',
       })
       .populate({
         path: 'receiver',
-        select: '_id fullImage firstName lastName',
+        select: '_id firstName lastName',
       })
       .exec();
     return requests;
   }
   async getUserById(id: string): Promise<any>{
-    const user = await this.user_service.getUser(id);
+    const user = await this.user_service.getAllUserDate(id);
+    console.log(user)
     return user
+  }
+  async deleteUserById(id: string): Promise<string>{
+    await this.user_service.deleteUserById(id);
+    return "user rejected successfully";
+  }
+  async warningUser(id: string, warning: any): Promise<string> {
+    console.log(warning)
+    const user = await this.user_model.findByIdAndUpdate(
+        id,
+        { isCompleted: false, warning: warning.warningInput }
+    ).exec();
+    console.log(user);
+    return "user warned successfully";
+  }
+  async getAllUsers(){
+    const  allUsers = await this.user_service.getAllUsers();
+    return allUsers
   }
 }

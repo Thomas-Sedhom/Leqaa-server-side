@@ -52,7 +52,7 @@ export class CompleteRegDto{
   college: string
   university: string
   specialization: string
-  languages: LanguageDto[];
+  languages: [LanguageDto];
   @IsNotEmpty()
   @IsString()
   religion: string
@@ -100,8 +100,8 @@ export class CompleteRegDto{
   nameOfTheApplicantGuardian: string
   relationWithApplicant: string
   phoneOfGuardian: string
-  hobbies: [string]
-  habbits: [string]
+  hobbies: string
+  habbits: string
   otherInfo: string
   @IsNotEmpty()
   livingAbroad:string

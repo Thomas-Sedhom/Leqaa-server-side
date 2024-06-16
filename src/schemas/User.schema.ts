@@ -123,15 +123,17 @@ export class User {
   @Prop({ required: false , default: null })
   phoneOfGuardian: string;
   @Prop({  default: null })
-  hobbies: [string];
+  hobbies: string;
   @Prop({  default: null  })
-  habits: [string];
+  habits: string;
   @Prop({ required: false , default: null })
   otherInfo: string;
   @Prop({  default: null  })
   livingAbroad: boolean;
   @Prop({  default: "user" })
   role: string;
+  @Prop({default: ""})
+  warning: string;
 }
 export const UserSchema = SchemaFactory.createForClass(User);
 

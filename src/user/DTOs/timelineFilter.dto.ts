@@ -41,6 +41,5 @@ export class TimelineFilterDto {
   habits?: string;
 
   @IsOptional()
-  @IsBoolean()
   livingAbroad?: string;
 }

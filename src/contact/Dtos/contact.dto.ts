@@ -6,5 +6,8 @@ export class ContactDto{
   email: string;
   @IsString()
   @IsNotEmpty()
+  name: string;
+  @IsString()
+  @IsNotEmpty()
   message: string;
 }

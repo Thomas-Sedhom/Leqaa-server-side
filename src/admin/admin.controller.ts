@@ -1,6 +1,7 @@
-import { Controller, Get, Param, UseGuards } from "@nestjs/common";
+import {Body, Controller, Get, Param, Post, Req, UseGuards} from "@nestjs/common";
 import { AdminGuard } from "../shared/guards/admin.guard";
 import { AdminService } from "./admin.service";
+import {CustomRequest} from "../shared/interfaces/custom-request.interface";
 @UseGuards(AdminGuard)
 @Controller('admin')
 export class AdminController {
@@ -14,11 +15,29 @@ export class AdminController {
       return error.message
     }
   }
-  @Get('notApprovedUsers/:id')
+  @Get('notApprovedUsers/:id/accept')
   async approvedUser(@Param('id') id :string): Promise<string>{
     try{
       await this.admin_Service.approvedUser(id);
       return "user approved successfully"
+    }catch (error){
+      return error
+    }
+  }
+  @Get('notApprovedUsers/:id/reject')
+  async rejectUser(@Param('id') id :string): Promise<string>{
+    try{
+      const rejectedUser: string = await this.admin_Service.deleteUserById(id);
+      return rejectedUser
+    }catch (error){
+      return error
+    }
+  }
+  @Post('notApprovedUsers/:id/warning')
+  async warning(@Param('id') id :string, @Body() warning: string): Promise<string>{
+    try{
+      const warnedUser: string = await this.admin_Service.warningUser(id, warning);
+      return warnedUser
     }catch (error){
       return error
     }
@@ -32,7 +51,7 @@ export class AdminController {
       return error
     }
   }
-  @Get('sentRequests')
+  @Get('pendingRequests')
   async requests(): Promise<any>{
     try{
       const connections = await this.admin_Service.getUsersSentRequests();
@@ -44,8 +63,10 @@ export class AdminController {
   @Get('connections/:id')
   async getConnectionUser(@Param('id') id: string):Promise<any>{
     try{
-      const connections = await this.admin_Service.getUserById(id);
-      return connections
+      console.log(id)
+      const user = await this.admin_Service.getUserById(id);
+      console.log(user)
+      return user
     }catch (error){
       return error
     }
@@ -58,5 +79,20 @@ export class AdminController {
     }catch (error){
       return error
     }
+  }
+  @Get("profile")
+  async getProfile(@Req() req: CustomRequest): Promise<any>{
+    try{
+      console.log(req.admin)
+      const admin = req.admin;
+      return admin
+    }catch(error){
+      return error.message;
+    }
+  }
+  @Get("allUsers")
+  async getAllUsers(): Promise<any>{
+    const allUsers = await this.admin_Service.getAllUsers();
+    return allUsers;
   }
 }

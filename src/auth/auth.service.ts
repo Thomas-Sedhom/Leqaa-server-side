@@ -30,14 +30,21 @@ export class AuthService {
       throw new BadRequestException('Email already exists');
     }
   }
-  async initiateRegistration(signupDto: SignupDto){
+  async initiateRegistration(signupDto: SignupDto): Promise<string>{
     await this.checkEmail(signupDto.email);
-    const verificationCode : string = Math.random().toString().substring(2, 12);
+    const verificationCode : string = Math.random().toString().substring(7, 12);
     await this.storeVerificationData(verificationCode, signupDto);
-    await this.sendVerificationEmail(verificationCode, signupDto);
     return verificationCode;
   }
-  async storeVerificationData(verificationCode: string, signupDto: SignupDto){
+  async resendVerificationCode(email: string):Promise<void>{
+    const storeVerification = await this.cacheManager.get(`verification-${email}`) as {
+      verification: string;
+      email: string;
+      password: string
+    };
+    await this.sendVerificationEmail(storeVerification.verification, email);
+  }
+  async storeVerificationData(verificationCode: string, signupDto: SignupDto): Promise<void>{
     const hashPassword: string = await hashPass(signupDto.password);
     const verificationData = {
       verification: verificationCode,
@@ -46,14 +53,14 @@ export class AuthService {
     };
     await this.cacheManager.set(`verification-${signupDto.email}`, verificationData );
   }
+  async sendVerificationEmail(verificationCode: string, email: string): Promise<any>{
 
-  async sendVerificationEmail(verificationCode: string, signupDto: SignupDto){
     await this.mailer_service.sendMail({
-      to: signupDto.email,
+      to: email,
       subject: 'Reset your password',
       html: ` Hello,
 
-      Thank you for registering with our application. To complete your registration, please use the following verification code:
+      Thank you for registering with our application. To complete your registration, please use the following verification code: 
 
       Verification Code: ${verificationCode}
 
@@ -64,13 +71,12 @@ export class AuthService {
     })
     return null
   }
-  async verify(verifyDto: VerifyDto){
+  async verify(verifyDto: VerifyDto): Promise<string>{
     const storeVerification = await this.cacheManager.get(`verification-${verifyDto.email}`) as {
       verification: string;
       email: string;
       password: string
     };
-    // console.log(storeVerification)
     if(storeVerification == undefined || storeVerification.email != verifyDto.email)
       throw new BadRequestException("wrong Email");
 
@@ -149,28 +155,23 @@ export class AuthService {
     }, { new: true } )
     return user
   }
-  async login(loginDto: LoginDto): Promise<string> {
-    let token: string;
+  async login(loginDto: LoginDto): Promise<any> {
+    const res = {token: "", client: {}};
     const user = await this.userModel.findOne({ email: loginDto.email });
     const admin = await this.adminModel.findOne({ email: loginDto.email });
     if (user != null) {
-      try {
         await comparePass(loginDto.password, user.password);  // Option 1 (await)
-      } catch (error) {
-        throw new HttpException('Invalid password', HttpStatus.BAD_REQUEST); // Example error handling
-      }
-      token = await this.createToken(user._id);
+        res.token = await this.createToken(user._id);
+        res.client = user;
+
     }else if(admin != null){
-      try {
         await comparePass(loginDto.password, admin.password);  // Option 1 (await)
-      } catch (error) {
-        throw new HttpException('Invalid password', HttpStatus.BAD_REQUEST); // Example error handling
-      }
-       token = await this.createToken(admin._id);
+        res.token = await this.createToken(admin._id);
+        res.client = admin;
     }else{
-      throw new BadRequestException("wrong email")
+      throw new BadRequestException("wrong email");
     }
-    return token;
+    return res;
   }
   async createAdmin(adminDto: AdminDto): Promise<string>{
     await this.checkEmail(adminDto.email);

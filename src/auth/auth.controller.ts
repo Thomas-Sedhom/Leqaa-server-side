@@ -32,14 +32,27 @@ export class AuthController {
     return "check your email";
   }
   @Post("verify")
-  async verify(@Body() verifyDto: VerifyDto, @Res() res: Response): Promise<void>{
+  async verify(@Body() verifyDto: VerifyDto, @Res() res: Response, @Req() req: CustomRequest): Promise<void>{
     const token = await this.auth_service.verify(verifyDto)
+
     await this.auth_service.removeRegistrationData(verifyDto.email)
     res.cookie("jwt", token, {
-      httpOnly: true,
-      maxAge: 60 * 60 * 60 * 1000
+      maxAge: 60 * 60 * 60 * 1000,
+      sameSite: "none",
+      secure: true,
+      partitioned: true
     });
-    res.send(token);
+    console.log(req.cookies);
+    res.json({ token });
+  }
+  @Post('resendCode')
+  async resendCode(@Body('email') email: string): Promise<string>{
+    try{
+      await this.auth_service.resendVerificationCode(email);
+      return "code resent successfully";
+    }catch (err){
+      return err
+    }
   }
   @UseGuards(AuthGuard)
   @UseGuards(IsCompletedUserGuard)
@@ -70,7 +83,7 @@ export class AuthController {
       // await imagePipe.transform(files.fullImage)
       // await imagePipe.transform(files.idImage)
       // await imagePipe.transform(files.manWithIdImage)
-
+      console.log(req.user._id, completeReg)
       const faceImageUrl: string| undefined = await this.firebase_service.uploadImageToCloud(files.faceImage, `\`${req.user.id}\`/`);
       const fullImageUrl: any = await this.firebase_service.uploadImageToCloud(files.fullImage, `\`${req.user.id}\`/`);
       const idImageUrl: any = await this.firebase_service.uploadImageToCloud(files.idImage, `\`${req.user.id}\`/`);
@@ -82,27 +95,37 @@ export class AuthController {
       completeReg.manWithIdImage = manWithIdImageUrl;
 
       await this.auth_service.completeRegistration(req.user._id,completeReg)
+      console.log(4)
       res.send("data completed successfully, wait for approved profile")
     }catch (error){
       return error;
     }
   }
+  @UseGuards(AuthGuard)
+  @UseGuards(IsCompletedUserGuard)
+  @Get("warning")
+  async getWarning(@Req() req: CustomRequest): Promise<string>{
+    const userWarning: string = req.user.warning;
+    return userWarning
+  }
   @Post("login")
   async login(@Body() loginDto: LoginDto, @Res() res: Response): Promise<void>{
     try{
-      const token: string = await this.auth_service.login(loginDto);
-      res.cookie('jwt', token,
+      const resp = await this.auth_service.login(loginDto);
+      res.cookie('jwt', resp.token,
         {
-          httpOnly: true,
-          maxAge: 60 * 60 * 60 * 1000
+          maxAge: 60 * 60 * 60 * 1000,
+          sameSite: "none",
+          secure: true,
+          partitioned: true
         })
-      res.send(token)
+      res.send(resp.client)
     }catch (error){
-      res.send(error.message)
+      res.send(error)
     }
   }
   @UsePipes(new JoiValidationPipe(AdminJoiSchema))
-  @UseGuards(SuperAdminGuard)
+  // @UseGuards(SuperAdminGuard)
   @Post("admin")
   async admin(@Body() adminDto: AdminDto): Promise<string>{
     const createAdmin: string = await this.auth_service.createAdmin(adminDto);
