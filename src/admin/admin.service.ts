@@ -23,36 +23,36 @@ export class AdminService {
   async getNotApprovedUsers(){
     const users = await this.user_model.find(
         {isApprove: false, isCompleted: true},
-        {_id: 1, firstName: 1, lastName: 1}
+        {_id: 1, firstName: 1, lastName: 1, registrationDate: 1}
     );
     return users;
   }
   async approvedUser(id: string){
     const user = await this.user_model.findByIdAndUpdate(
       id,
-      { isApprove: true },
+      { isApprove: true, warning: "" },
       { new: true }
     )
     return user;
   };
   async getUsersConnections() {
     const connections = await this.connection_model
-      .find()
-      .populate({
-      path: 'userId1',
-      select: '_id fullImage firstName lastName',
-    })
-      .populate({
-        path: 'userId2',
-        select: '_id fullImage firstName lastName',
-      })
-      .exec();
+        .find({}, { connectionDate: 1 })
+        .populate({
+          path: 'userId1',
+          select: '_id fullImage firstName lastName'
+        })
+        .populate({
+          path: 'userId2',
+          select: '_id fullImage firstName lastName'
+        })
+        .exec();
     console.log(connections)
     return connections;
   }
   async getUsersSentRequests() {
     const requests = await this.pendingConnection_model
-      .find()
+      .find({}, {requestDate: 1})
       .populate({
         path: 'sender',
         select: '_id firstName lastName',
@@ -74,13 +74,30 @@ export class AdminService {
     return "user rejected successfully";
   }
   async warningUser(id: string, warning: any): Promise<string> {
-    console.log(warning)
+    const currentDate: Date = new Date();
+    const formattedWarningDate: string = currentDate.toISOString().slice(0, 10);
     const user = await this.user_model.findByIdAndUpdate(
         id,
-        { isCompleted: false, warning: warning.warningInput }
+        {
+          isCompleted: false,
+          warning: warning.warningInput,
+          latestWarningDate: formattedWarningDate
+        }
     ).exec();
     console.log(user);
     return "user warned successfully";
+  }
+  async getWarningUsers() {
+    const users = await this.user_model.find({
+      warning: { $exists: true, $ne: "" }
+    }, {
+      firstName: 1,
+      lastName: 1,
+      warning: 1,
+      latestWarningDate: 1,
+      _id: 1
+    });
+    return users;
   }
   async getAllUsers(){
     const  allUsers = await this.user_service.getAllUsers();

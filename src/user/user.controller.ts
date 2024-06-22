@@ -4,21 +4,23 @@ import { TimelineFilterDto } from "./DTOs/timelineFilter.dto";
 import { CustomRequest } from "../shared/interfaces/custom-request.interface";
 import { IsWomanGuard } from "../shared/guards/isWoman.guard";
 import { IsApprovedUserGuard } from "../shared/guards/isApprovedUser.guard";
-@UseGuards(IsApprovedUserGuard)
+import {AuthGuard} from "../shared/guards/auth.guard";
+
 @Controller('user')
 export class UserController {
   constructor(private readonly user_service: UserService) {}
+  @UseGuards(IsApprovedUserGuard)
   @Get("timeline")
   async timeline(@Query() timelineDto: TimelineFilterDto, @Req() req: CustomRequest): Promise<any>{
     try{
       console.log(req.user.gender, "name")
-      const timeline = await this.user_service.getTimeline(timelineDto, req.user.gender);
-      console.log(timeline)
+      const timeline = await this.user_service.getTimeline(timelineDto, req.user.gender, req.user._id);
       return timeline
     }catch(error){
       return error.message
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("isCompleted")
   async isCompleted(@Req() req: CustomRequest): Promise<boolean>{
     try{
@@ -28,6 +30,7 @@ export class UserController {
       return err;
     }
 }
+  @UseGuards(IsApprovedUserGuard)
   @Get("isApproved")
   async isApproved(@Req() req: CustomRequest): Promise<boolean>{
     try{
@@ -37,6 +40,7 @@ export class UserController {
       return err;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("gender")
   async gender(@Req() req: CustomRequest): Promise<string>{
     try{
@@ -46,6 +50,7 @@ export class UserController {
       return err;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @UseGuards(IsWomanGuard)
   @Get("getProfileStatus")
   async getProfileStatus(@Req() req: CustomRequest): Promise<boolean>{
@@ -56,6 +61,7 @@ export class UserController {
       return err;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @UseGuards(IsWomanGuard)
   @Get("changeProfileStatus")
   async profileStatus(@Req() req: CustomRequest): Promise<boolean>{
@@ -74,6 +80,7 @@ export class UserController {
   //   await this.user_service.visibleProfile(req.user._id);
   //   return "your profile is visible"
   // }
+  @UseGuards(IsApprovedUserGuard)
   @Get("timeline/:id")
   async getUser(@Param('id') id: string): Promise<any>{
     try{
@@ -83,6 +90,7 @@ export class UserController {
       return error.message;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("timeline/:id/sendRequest")
   async sendRequest(@Param('id') id: string, @Req() req: CustomRequest): Promise<any>{
     try{
@@ -93,6 +101,7 @@ export class UserController {
       return error.message;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("sentRequests")
   async getSentRequests(@Req() req: CustomRequest): Promise<any>{
     try{
@@ -104,6 +113,7 @@ export class UserController {
       return error.message;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("requests")
   async getRequests(@Req() req: CustomRequest): Promise<object[]>{
     try{
@@ -114,6 +124,7 @@ export class UserController {
       return error.message;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("requests/:id")
   async getUserRequest(@Param('id') id: string): Promise<any>{
     try{
@@ -123,6 +134,7 @@ export class UserController {
       return error.message;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("requests/:id/accept")
   async acceptRequest(@Param('id') id: string, @Req() req: CustomRequest): Promise<any>{
     try{
@@ -133,6 +145,7 @@ export class UserController {
       return error.message;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("requests/:id/reject")
   async rejectRequest(@Param('id') id: string, @Req() req: CustomRequest): Promise<any>{
     try{
@@ -143,12 +156,14 @@ export class UserController {
       return error.message;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("findConnection/:id")
   async findConnection(@Param('id') user2: string , @Req() req: CustomRequest): Promise<string>{
     const user1 = req.user._id.toString();
     const check: string = await this.user_service.checkConnection(user1, user2) ;
     return check;
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("connections")
    async getConnections(@Req() req: CustomRequest): Promise<any>{
     try{
@@ -159,6 +174,7 @@ export class UserController {
       return error.message;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
   @Get("connections/:id")
   async getConnectionUSer(@Param('id') id: string): Promise<any>{
     try{
@@ -168,13 +184,16 @@ export class UserController {
       return error.message;
     }
   }
+  @UseGuards(AuthGuard)
   @Get("profile")
   async getProfile(@Req() req: CustomRequest): Promise<any>{
     try{
       const user = req.user;
+      console.log(user)
       return user
     }catch(error){
-      return error.message;
+      console.log(error)
+      return error;
     }
   }
 }

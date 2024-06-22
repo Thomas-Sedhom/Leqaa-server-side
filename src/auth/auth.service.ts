@@ -31,17 +31,21 @@ export class AuthService {
     }
   }
   async initiateRegistration(signupDto: SignupDto): Promise<string>{
+    console.log(signupDto);
     await this.checkEmail(signupDto.email);
     const verificationCode : string = Math.random().toString().substring(7, 12);
     await this.storeVerificationData(verificationCode, signupDto);
+    console.log(verificationCode);
     return verificationCode;
   }
   async resendVerificationCode(email: string):Promise<void>{
+    console.log(email)
     const storeVerification = await this.cacheManager.get(`verification-${email}`) as {
       verification: string;
       email: string;
       password: string
     };
+
     await this.sendVerificationEmail(storeVerification.verification, email);
   }
   async storeVerificationData(verificationCode: string, signupDto: SignupDto): Promise<void>{
@@ -51,25 +55,27 @@ export class AuthService {
       email: signupDto.email,
       password: hashPassword
     };
+
     await this.cacheManager.set(`verification-${signupDto.email}`, verificationData );
+    console.log(`verification-${signupDto.email}`)
   }
   async sendVerificationEmail(verificationCode: string, email: string): Promise<any>{
-
+    console.log("message")
     await this.mailer_service.sendMail({
       to: email,
       subject: 'Reset your password',
       html: ` Hello,
 
       Thank you for registering with our application. To complete your registration, please use the following verification code: 
-
+     <br><br>
       Verification Code: ${verificationCode}
-
+      <br><br>
       If you did not request this verification code, please ignore this email.
 
       Best regards,
       Your Application Team`
     })
-    return null
+    console.log("after message")
   }
   async verify(verifyDto: VerifyDto): Promise<string>{
     const storeVerification = await this.cacheManager.get(`verification-${verifyDto.email}`) as {
@@ -95,6 +101,8 @@ export class AuthService {
     await this.cacheManager.del(`registration-${email}`);
   }
   async completeRegistration(id: string ,completeReg: CompleteRegDto){
+    const currentDate: Date = new Date();
+    const formattedRegistrationDate: string = currentDate.toISOString().slice(0, 10);
     const user = await this.userModel.findByIdAndUpdate(id, {
       firstName: completeReg.firstName,
       midName: completeReg.midName,
@@ -127,9 +135,9 @@ export class AuthService {
       faceImage: completeReg.faceImage,
       fullImage: completeReg.fullImage,
       idImage: completeReg.idImage,
-      manWithIdImage:completeReg.manWithIdImage,
+      // manWithIdImage:completeReg.manWithIdImage,
       car: completeReg.car === "true",
-      carModel: completeReg.car,
+      carModel: completeReg.carModel,
       carType: completeReg.carType,
       apartment: completeReg.apartment === "true",
       space: completeReg.space,
@@ -152,6 +160,8 @@ export class AuthService {
       otherInfo: completeReg.otherInfo,
       livingAbroad:completeReg.livingAbroad === "true",
       isCompleted: true,
+      registrationDate: formattedRegistrationDate,
+      warning: ""
     }, { new: true } )
     return user
   }

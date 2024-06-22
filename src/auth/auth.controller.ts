@@ -48,7 +48,9 @@ export class AuthController {
   @Post('resendCode')
   async resendCode(@Body('email') email: string): Promise<string>{
     try{
+      console.log("resend1")
       await this.auth_service.resendVerificationCode(email);
+      console.log("resend2")
       return "code resent successfully";
     }catch (err){
       return err
@@ -60,7 +62,7 @@ export class AuthController {
     { name: 'faceImage', maxCount: 1 },
     { name: 'fullImage', maxCount: 1 },
     { name: 'idImage', maxCount: 1 },
-    { name: 'manWithIdImage', maxCount: 1 },
+    // { name: 'manWithIdImage', maxCount: 1 },
   ]))
   @Post("completeRegistration")
   async completeRegistration(
@@ -69,7 +71,7 @@ export class AuthController {
       faceImage?: Express.Multer.File[],
       fullImage?: Express.Multer.File[],
       idImage?: Express.Multer.File[],
-      manWithIdImage?: Express.Multer.File[]
+      // manWithIdImage?: Express.Multer.File[]
     },
     @Req() req: CustomRequest,
     @Res() res: Response
@@ -87,12 +89,12 @@ export class AuthController {
       const faceImageUrl: string| undefined = await this.firebase_service.uploadImageToCloud(files.faceImage, `\`${req.user.id}\`/`);
       const fullImageUrl: any = await this.firebase_service.uploadImageToCloud(files.fullImage, `\`${req.user.id}\`/`);
       const idImageUrl: any = await this.firebase_service.uploadImageToCloud(files.idImage, `\`${req.user.id}\`/`);
-      const manWithIdImageUrl: any = await this.firebase_service.uploadImageToCloud(files.manWithIdImage, `\`${req.user.id}\`/`);
+      // const manWithIdImageUrl: any = await this.firebase_service.uploadImageToCloud(files.manWithIdImage, `\`${req.user.id}\`/`);
 
       completeReg.faceImage = faceImageUrl;
       completeReg.fullImage = fullImageUrl;
       completeReg.idImage = idImageUrl;
-      completeReg.manWithIdImage = manWithIdImageUrl;
+      // completeReg.manWithIdImage = manWithIdImageUrl;
 
       await this.auth_service.completeRegistration(req.user._id,completeReg)
       console.log(4)

@@ -7,6 +7,8 @@ export class Connection {
   userId1: mongoose.Types.ObjectId
   @Prop({ required: true, ref: 'User'  })
   userId2:mongoose.Types.ObjectId
+  @Prop({ required: true })
+  connectionDate: string
 }
 export const ConnectionSchema = SchemaFactory.createForClass(Connection);
 

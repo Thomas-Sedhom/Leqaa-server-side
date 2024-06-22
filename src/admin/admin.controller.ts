@@ -80,6 +80,15 @@ export class AdminController {
       return error
     }
   }
+  @Get('usersWarning')
+  async getWarningUsers(): Promise<any>{
+    try{
+      const users = await this.admin_Service.getWarningUsers();
+      return users
+    }catch (error){
+      return error
+    }
+  }
   @Get("profile")
   async getProfile(@Req() req: CustomRequest): Promise<any>{
     try{

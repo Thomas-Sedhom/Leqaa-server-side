@@ -7,6 +7,8 @@ export class PendingConnection {
   sender: mongoose.Types.ObjectId
   @Prop({ required: true, ref: 'User'  })
   receiver: mongoose.Types.ObjectId
+  @Prop({required: true})
+  requestDate: string
 }
 export const PendingConnectionSchema = SchemaFactory.createForClass(PendingConnection);
 

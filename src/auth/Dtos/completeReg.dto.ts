@@ -72,7 +72,7 @@ export class CompleteRegDto{
   faceImage: string
   fullImage: string
   idImage: string
-  manWithIdImage:string
+  // manWithIdImage:string
   // @IsNotEmpty()
   @IsNotEmpty()
   car: string

@@ -134,6 +134,10 @@ export class User {
   role: string;
   @Prop({default: ""})
   warning: string;
+  @Prop()
+  registrationDate: string;
+  @Prop()
+  latestWarningDate: string;
 }
 export const UserSchema = SchemaFactory.createForClass(User);
 
