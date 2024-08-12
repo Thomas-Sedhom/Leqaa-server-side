@@ -9,6 +9,8 @@ export class Connection {
   userId2:mongoose.Types.ObjectId
   @Prop({ required: true })
   connectionDate: string
+  @Prop({ default: undefined })
+  commission: string
 }
 export const ConnectionSchema = SchemaFactory.createForClass(Connection);
 

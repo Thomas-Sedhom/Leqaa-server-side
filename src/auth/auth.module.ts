@@ -9,7 +9,6 @@ import { FirebaseModule } from "../firebase/firebase.module";
 import { UserModule } from "../user/user.module";
 import { Admin, AdminSchema } from "../schemas/Admin.schema";
 import { AdminModule } from "../admin/admin.module";
-
 @Module({
   providers: [AuthService],
   controllers: [AuthController],

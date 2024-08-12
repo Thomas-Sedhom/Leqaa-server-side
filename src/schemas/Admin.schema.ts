@@ -17,9 +17,9 @@ export const AdminJoiSchema: Joi.ObjectSchema<Admin> = Joi.object({
   name: Joi.string().required().messages({"message": "name is required" }),
   email: Joi.string().required().email().messages({ "message": "email is required" }),
   password: Joi.string().required()
-    .pattern(/(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$_#!%*?&]{8,}$/)
+    .pattern(/^.{8,}$/)
     .messages({
-      'string.pattern.base': 'Password must contain at least one lowercase letter, one uppercase letter, one digit, one special character, and be 8 characters long',
+      'string.pattern.base': 'يجب ان يحتوي الرقم السري علي حرف كبير و رقم و لا يقل عن 8 احرف',
     }),
   role: Joi.string().required().messages({ "message": "role is required" }),
 });

@@ -10,6 +10,12 @@ export class Contact {
   email: string;
   @Prop({ required: true })
   message: string;
+  @Prop({ required: true })
+  contactDate: string
+  @Prop({ required: true })
+  isDone: boolean
+  @Prop({ default: null })
+  readDate: string
 }
 export const ContactSchema = SchemaFactory.createForClass(Contact);
 export const ContactJoiSchema: Joi.ObjectSchema<Contact> = Joi.object({

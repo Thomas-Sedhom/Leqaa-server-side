@@ -1,10 +1,11 @@
-import { Controller, Get, Param, Query, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from "@nestjs/common";
 import { UserService } from "./user.service";
 import { TimelineFilterDto } from "./DTOs/timelineFilter.dto";
 import { CustomRequest } from "../shared/interfaces/custom-request.interface";
 import { IsWomanGuard } from "../shared/guards/isWoman.guard";
 import { IsApprovedUserGuard } from "../shared/guards/isApprovedUser.guard";
 import {AuthGuard} from "../shared/guards/auth.guard";
+import mongoose from "mongoose";
 
 @Controller('user')
 export class UserController {
@@ -13,7 +14,6 @@ export class UserController {
   @Get("timeline")
   async timeline(@Query() timelineDto: TimelineFilterDto, @Req() req: CustomRequest): Promise<any>{
     try{
-      console.log(req.user.gender, "name")
       const timeline = await this.user_service.getTimeline(timelineDto, req.user.gender, req.user._id);
       return timeline
     }catch(error){
@@ -102,10 +102,20 @@ export class UserController {
     }
   }
   @UseGuards(IsApprovedUserGuard)
+  @Post('timeline/friendRequestEmail')
+  async friendRequestEmail(@Body() email: string, @Req() req: CustomRequest ): Promise<string>{
+    try{
+      const userName: string = `${req.user.firstName} ${req.user.lastName}`;
+      const message: string = await this.user_service.sendFriendRequestEmail(userName, email);
+      return message
+    }catch (err){
+      return err;
+    }
+  }
+  @UseGuards(IsApprovedUserGuard)
   @Get("sentRequests")
   async getSentRequests(@Req() req: CustomRequest): Promise<any>{
     try{
-      console.log(req.user.sentRequests)
       const userId: string = req.user.id;
       const allSentRequests: object[] = await this.user_service.userSentRequests(userId);
       return allSentRequests
@@ -138,13 +148,17 @@ export class UserController {
   @Get("requests/:id/accept")
   async acceptRequest(@Param('id') id: string, @Req() req: CustomRequest): Promise<any>{
     try{
+
       const accepterId: string = req.user._id.toString() ;
+      console.log(accepterId)
       await this.user_service.acceptRequest(id, accepterId);
+      console.log("request accepted successfully");
       return "request accepted successfully"
     }catch(error){
       return error.message;
     }
   }
+
   @UseGuards(IsApprovedUserGuard)
   @Get("requests/:id/reject")
   async rejectRequest(@Param('id') id: string, @Req() req: CustomRequest): Promise<any>{
@@ -175,6 +189,26 @@ export class UserController {
     }
   }
   @UseGuards(IsApprovedUserGuard)
+  @Get("confirmConnectionStatus/:userId")
+  async confirmConnectionStatus(@Param("userId") userId: string, @Req() req: CustomRequest): Promise<any>{
+    const user1Id: mongoose.Types.ObjectId = req.user._id;
+    const userId2: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(userId);
+    const status = await this.user_service.confirmConnectionStatus(user1Id, userId2);
+    return status;
+  }
+  @UseGuards(IsApprovedUserGuard)
+  @Get("rejectedConnections")
+  async getRejectedConnections(@Req() req: CustomRequest): Promise<any>{
+    try{
+      const userId: string = req.user._id.toString();
+      const allRejectedConnections= await this.user_service.userRejectedConnections(userId);
+      console.log(allRejectedConnections)
+      return allRejectedConnections;
+    }catch(error){
+      return error.message;
+    }
+  }
+  @UseGuards(IsApprovedUserGuard)
   @Get("connections/:id")
   async getConnectionUSer(@Param('id') id: string): Promise<any>{
     try{
@@ -184,15 +218,37 @@ export class UserController {
       return error.message;
     }
   }
+  @UseGuards(IsApprovedUserGuard)
+  @Delete("connections/:id/remove")
+  async removeConnection(@Param('id') id: string, @Req() req: CustomRequest): Promise<any>{
+    try{
+      const userId1: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(id);
+      const userId2: mongoose.Types.ObjectId = req.user._id
+      await this.user_service.removeConnection(userId1, userId2);
+      return "connection removed successfully"
+    }catch(error){
+      return error.message;
+    }
+  }
   @UseGuards(AuthGuard)
   @Get("profile")
   async getProfile(@Req() req: CustomRequest): Promise<any>{
     try{
       const user = req.user;
+      return user
+    }catch(error){
+      return error;
+    }
+  }
+  @UseGuards(AuthGuard)
+  @Get("profile/:userId")
+  async getProfileById(@Param("userId") userId: string): Promise<any>{
+    try{
+      console.log(userId)
+      const user = await this.user_service.getAllUserDate(userId);
       console.log(user)
       return user
     }catch(error){
-      console.log(error)
       return error;
     }
   }

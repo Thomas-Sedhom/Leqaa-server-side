@@ -79,7 +79,15 @@ export class User {
   @Prop({ required: false , default: null })
   faceImage: string;
   @Prop({ required: false , default: null })
-  fullImage: string;
+  fullImage1: string;
+  @Prop({ required: false , default: null })
+  fullImage2: string;
+  @Prop({ required: false , default: null })
+  fullImage3: string;
+  @Prop({ required: false , default: null })
+  fullImage4: string;
+  @Prop({ required: false , default: null })
+  fullImage5: string;
   @Prop({ required: false , default: null })
   idImage: string;
   @Prop({ required: false , default: null })
@@ -138,6 +146,16 @@ export class User {
   registrationDate: string;
   @Prop()
   latestWarningDate: string;
+  @Prop({ default: false })
+  block: boolean;
+  @Prop({default: false})
+  sprint1: boolean
+  @Prop({default: false})
+  sprint2: boolean
+  @Prop({default: false})
+  sprint3: boolean
+  @Prop({default: false})
+  sprint4: boolean
 }
 export const UserSchema = SchemaFactory.createForClass(User);
 

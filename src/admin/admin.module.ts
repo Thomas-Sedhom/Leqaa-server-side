@@ -7,6 +7,7 @@ import { UserModule } from "../user/user.module";
 import { Admin, AdminSchema } from "../schemas/Admin.schema";
 import { Connection, ConnectionSchema } from "../schemas/Connection.schema";
 import { PendingConnection, PendingConnectionSchema } from "../schemas/PendingConnection.schema";
+import { RejectedConnection, RejectedConnectionSchema } from "../schemas/rejectedConnection.schema";
 
 
 @Module({
@@ -17,7 +18,9 @@ import { PendingConnection, PendingConnectionSchema } from "../schemas/PendingCo
       {name: User.name, schema: UserSchema},
       {name: Admin.name, schema: AdminSchema},
       {name: Connection.name, schema: ConnectionSchema },
-      {name: PendingConnection.name, schema: PendingConnectionSchema }
+      {name: PendingConnection.name, schema: PendingConnectionSchema },
+      {name: RejectedConnection.name, schema: RejectedConnectionSchema }
+
     ]),
     UserModule,
 

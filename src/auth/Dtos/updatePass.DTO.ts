@@ -1,7 +1,8 @@
 import { IsNotEmpty } from "class-validator";
-export class VerifyDto{
+
+export class UpdatePassDto {
   @IsNotEmpty()
-  email: string;
+  email: string
   @IsNotEmpty()
-  verification: string;
+  password: string
 }

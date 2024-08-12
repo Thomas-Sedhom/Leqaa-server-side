@@ -1,7 +1,8 @@
+
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 import { GenderEnum } from "../../enums/gender.enum";
-import { SkinColorEnum } from "../../enums/skinColor.enum";
 import { SchoolTypeEnum } from "../../enums/schoolType.enum";
-import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
+import { SkinColorEnum } from "../../enums/skinColor.enum";
 class LanguageDto {
   @IsString()
   language: string;
@@ -9,43 +10,21 @@ class LanguageDto {
   @IsString()
   level: string;
 }
-export class CompleteRegDto{
-  @IsNotEmpty()
-  @IsString()
+export class UserDto {
+  email: string;
   firstName: string
-  @IsString()
-  @IsNotEmpty()
   midName: string
-  @IsString()
-  @IsNotEmpty()
   lastName:string
-  @IsNotEmpty()
   age:number
-  @IsNotEmpty()
   gender: GenderEnum
-  @IsNotEmpty()
   DOB: Date
-  @IsNotEmpty()
-  @IsString()
   nationality: string
-  @IsNotEmpty()
-  @IsString()
   governorate: string
-  @IsNotEmpty()
-  @IsString()
   city: string
-  @IsNotEmpty()
-  @IsString()
   region: string
-  @IsNotEmpty()
-  @IsString()
   address: string
-  @IsNotEmpty()
-  @IsString()
   phone: string
   club: string
-  @IsNotEmpty()
-  @IsString()
   qualification: string
   school: string
   schoolType: SchoolTypeEnum
@@ -53,58 +32,35 @@ export class CompleteRegDto{
   university: string
   specialization: string
   languages: [LanguageDto];
-  @IsNotEmpty()
-  @IsString()
   religion: string
-  @IsNotEmpty()
   height: string
-  @IsNotEmpty()
   weight: string
-  @IsNotEmpty()
   skinColor: SkinColorEnum
-  @IsNotEmpty()
-  // @IsBoolean()
   permanentDiseases: string
   permanentDiseasesDetails: string
-  @IsNotEmpty()
   disability:  string
   disabilityDetails: string
-  @IsOptional()
   faceImage: string
-  @IsOptional()
   fullImage1: string
-  @IsOptional()
   fullImage2: string
-  @IsOptional()
   fullImage3: string
-  @IsOptional()
   fullImage4: string
-  @IsOptional()
   fullImage5: string
-  @IsOptional()
   idImage: string
   // manWithIdImage:string
-  // @IsNotEmpty()
-  @IsNotEmpty()
   car: string
   carModel: string
   carType: string
-  @IsNotEmpty()
   apartment: string
   space: number
   site: string
-  @IsNotEmpty()
   businessOwner: string
   businessType: string
-  @IsNotEmpty()
   job: string
   jobTitle: string
   jobCompany: string
-  @IsNotEmpty()
   marriedBefore: string
-  @IsNotEmpty()
   marriedNow: string
-  @IsNotEmpty()
   children: string
   numberOfChildren: number
   agesOfChildren: string
@@ -114,7 +70,6 @@ export class CompleteRegDto{
   hobbies: string
   habbits: string
   otherInfo: string
-  @IsNotEmpty()
   livingAbroad:string
   isCompleted: boolean;
 }

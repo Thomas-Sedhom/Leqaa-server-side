@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { InjectModel } from "@nestjs/mongoose";
 import { User } from "../schemas/User.schema";
-import { Model } from "mongoose";
+import mongoose, { Model } from "mongoose";
 import { Admin } from "../schemas/Admin.schema";
 import { Connection } from "../schemas/Connection.schema";
 import { PendingConnection } from "../schemas/PendingConnection.schema";
 import { UserService } from "../user/user.service";
+import { RejectedConnection } from "../schemas/rejectedConnection.schema";
+import { MailerService } from "@nestjs-modules/mailer";
+import { WarningEmailDTO } from "./DTOs/warningEmail.DTO";
 
 @Injectable()
 export class AdminService {
@@ -14,7 +17,9 @@ export class AdminService {
     @InjectModel(Admin.name) private admin_model: Model<Admin>,
     @InjectModel(Connection.name) private connection_model: Model<Connection>,
     @InjectModel(PendingConnection.name) private pendingConnection_model: Model<PendingConnection>,
-    private readonly user_service: UserService
+    @InjectModel(RejectedConnection.name) private rejectedConnection_model: Model<RejectedConnection>,
+    private readonly user_service: UserService,
+    private readonly mailer_service: MailerService,
   ) {}
   async findAdminById(id: string){
     const admin = await this.admin_model.findById(id);
@@ -30,14 +35,14 @@ export class AdminService {
   async approvedUser(id: string){
     const user = await this.user_model.findByIdAndUpdate(
       id,
-      { isApprove: true, warning: "" },
+      { isApprove: true, isCompleted: true, warning: "" },
       { new: true }
     )
     return user;
   };
   async getUsersConnections() {
     const connections = await this.connection_model
-        .find({}, { connectionDate: 1 })
+        .find({}, { connectionDate: 1, commission: 1 })
         .populate({
           path: 'userId1',
           select: '_id fullImage firstName lastName'
@@ -47,8 +52,21 @@ export class AdminService {
           select: '_id fullImage firstName lastName'
         })
         .exec();
-    console.log(connections)
     return connections;
+  }
+  async getUsersRejectedConnections() {
+    const rejectedConnections = await this.rejectedConnection_model
+      .find({},{rejectDate: 1})
+      .populate({
+        path: 'sender',
+        select: '_id fullImage firstName lastName'
+      })
+      .populate({
+        path: 'receiver',
+        select: '_id fullImage firstName lastName'
+      })
+      .exec();
+    return rejectedConnections;
   }
   async getUsersSentRequests() {
     const requests = await this.pendingConnection_model
@@ -66,7 +84,6 @@ export class AdminService {
   }
   async getUserById(id: string): Promise<any>{
     const user = await this.user_service.getAllUserDate(id);
-    console.log(user)
     return user
   }
   async deleteUserById(id: string): Promise<string>{
@@ -76,7 +93,7 @@ export class AdminService {
   async warningUser(id: string, warning: any): Promise<string> {
     const currentDate: Date = new Date();
     const formattedWarningDate: string = currentDate.toISOString().slice(0, 10);
-    const user = await this.user_model.findByIdAndUpdate(
+    await this.user_model.findByIdAndUpdate(
         id,
         {
           isCompleted: false,
@@ -84,7 +101,6 @@ export class AdminService {
           latestWarningDate: formattedWarningDate
         }
     ).exec();
-    console.log(user);
     return "user warned successfully";
   }
   async getWarningUsers() {
@@ -95,12 +111,84 @@ export class AdminService {
       lastName: 1,
       warning: 1,
       latestWarningDate: 1,
+      phone: 1,
       _id: 1
     });
     return users;
   }
   async getAllUsers(){
-    const  allUsers = await this.user_service.getAllUsers();
+    const  allUsers = await this.user_model.find({isCompleted: true});
     return allUsers
+  }
+
+  async block(id: mongoose.Types.ObjectId) {
+    await this.user_model.findByIdAndUpdate(
+      id,
+      { block: true },
+      {new: true}
+    );
+    return "user blocked successfully";
+  }
+  async unBlock(id: mongoose.Types.ObjectId) {
+    await this.user_model.findByIdAndUpdate(
+      id,
+      { block: false },
+      {new: true}
+    );
+    return "user unBlocked successfully";
+  }
+  async removeRequest(id: mongoose.Types.ObjectId): Promise<string> {
+    await this.pendingConnection_model.findByIdAndDelete(id)
+    return "Pending removed successfully";
+  }
+  async acceptRequest(userId1: mongoose.Types.ObjectId, userId2: mongoose.Types.ObjectId) {
+    const pendingConnection: mongoose.mongo.DeleteResult = await this.pendingConnection_model.deleteOne(
+      {
+        sender: userId1,
+        receiver: userId2
+      }
+    )
+    if(pendingConnection.deletedCount == 1){
+      const currentDate: Date = new Date();
+      const formattedConnectionDate: string = currentDate.toISOString().slice(0, 10);
+      await this.connection_model.create({
+        userId1,
+        userId2,
+        connectionDate: formattedConnectionDate
+      })
+    }else{
+      throw new BadRequestException("send connection request first")
+    }
+    return "accepted connection successfully";
+  }
+
+  async warningEmail(warningEmail: WarningEmailDTO) {
+    await this.mailer_service.sendMail({
+      to: warningEmail.email,
+      subject: 'registration warning',
+      html: `
+ عميلنا العزيز      
+       <span style="color: red; font-weight: bold;">${warningEmail.username}</span>
+   بناء علي تسجيلك المسبق في منصة لقاء  يجب استكمال تلك الملاحظات :    
+       <p style="color: red; font-weight: bold;">${warningEmail.message}</p]>
+      `
+    })
+    return "email sent successfully"
+  }
+
+  async getAllAdmins(currentUserId: mongoose.Types.ObjectId): Promise <any> {
+    const allAdmins = await this.admin_model.find({
+      _id: {$ne: currentUserId},
+    })
+    return allAdmins
+  }
+
+  async deleteAdmin(id: mongoose.Types.ObjectId): Promise <any> {
+    await this.admin_model.findByIdAndDelete(id);
+    return {message: "user rejected successfully" };
+  }
+
+  async commission(id: mongoose.Types.ObjectId, commission: string) {
+    await this.connection_model.findByIdAndUpdate(id, {commission})
   }
 }

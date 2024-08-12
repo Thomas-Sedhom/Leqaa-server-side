@@ -10,4 +10,8 @@ export class ContactDto{
   @IsString()
   @IsNotEmpty()
   message: string;
+  @IsString()
+  @IsNotEmpty()
+  contactDate: string;
+  isDone: boolean
 }

@@ -30,9 +30,9 @@ import { FirebaseModule } from './firebase/firebase.module';
         host: "sandbox.smtp.mailtrap.io",
         port: 2525,
         auth: {
-          user: "ce97c11d3ddd56",
-          pass: "0a0c30372c2e8d"
-        },
+          user: "4e0951b2e03417",
+          pass: "73e2f03d1ce31d"
+        }
       },
       defaults: {
         from: "outd8rs@gmail.com"

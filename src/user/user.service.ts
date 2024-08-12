@@ -6,19 +6,22 @@ import mongoose, {Model, PipelineStage} from "mongoose";
 import { GenderEnum } from "../enums/gender.enum";
 import { Connection } from "../schemas/Connection.schema";
 import { PendingConnection } from "../schemas/PendingConnection.schema";
+import {MailerService} from "@nestjs-modules/mailer";
+import { RejectedConnection } from "../schemas/rejectedConnection.schema";
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel(User.name) private user_model: Model<User>,
     @InjectModel(Connection.name) private connection_model: Model<Connection>,
-    @InjectModel(PendingConnection.name) private pendingConnection_model: Model<PendingConnection>
+    @InjectModel(PendingConnection.name) private pendingConnection_model: Model<PendingConnection>,
+    @InjectModel(RejectedConnection.name) private rejectConnection_model: Model<RejectedConnection>,
+    private readonly mailer_service: MailerService,
   ) {}
   private async getConnectionUserIds(userId: mongoose.Types.ObjectId) {
     const connections = await this.connection_model.find({
       $or: [{ userId1: userId }, { userId2: userId }],
     });
-    console.log(connections)
     return connections.map((connection) => {
       let connectionData  = {}
       const id1: string =  connection.userId1.toString();
@@ -30,11 +33,25 @@ export class UserService {
       return connectionData
     });
   }
+  private async getRejectedConnectionUserIds(userId: mongoose.Types.ObjectId) {
+    const rejectedConnections = await this.rejectConnection_model.find({
+      $or: [{ sender: userId }, { receiver: userId }],
+    });
+    return rejectedConnections.map((connection) => {
+      let connectionData  = {}
+      const id1: string =  connection.sender.toString();
+      const id2: string =  userId.toString();
+      if( id1 === id2)
+        connectionData = connection.receiver
+      else
+        connectionData = connection.sender
+      return connectionData
+    });
+  }
   private async getPendingConnectionUserIds(userId: mongoose.Types.ObjectId) {
     const connections = await this.pendingConnection_model.find({
       $or: [{ sender: userId }, { receiver: userId }],
     });
-    console.log(connections)
     return connections.map((connection) => {
       let connectionData  = {}
       const id1: string =  connection.sender.toString();
@@ -46,8 +63,7 @@ export class UserService {
       return connectionData
     });
   }
-  private async getPendingSenderConnectionUsers(userId: mongoose.Types.ObjectId, query: any) {
-    query['user._id'] = { $ne: userId }
+  private async getPendingSenderConnectionUsers(userId: mongoose.Types.ObjectId) {
     const aggregation: PipelineStage[] = [
       {
         $match: {
@@ -71,26 +87,24 @@ export class UserService {
           requestDate: 1,
           user: {
             _id: 1, // Include these fields for the user object
-            fullImage: 1,
+            fullImage1: 1,
             age: 1,
             governorate: 1,
             jobTitle: 1,
+            businessType: 1
           },
         },
       },
       {
-        $match: query
+        $match:{
+          'user._id': {$ne: userId}
+        }
       },
     ];
-
     const pendingConnections = await this.pendingConnection_model.aggregate(aggregation);
-    console.log("pending", pendingConnections)
     return pendingConnections;
   }
-  private async getPendingReceiverConnectionUsers(userId: mongoose.Types.ObjectId, query) {
-
-    query['user._id'] = { $ne: userId }
-    console.log(query)
+  private async getPendingReceiverConnectionUsers(userId: mongoose.Types.ObjectId) {
     const aggregation: PipelineStage[] = [
       {
         $match: {
@@ -114,24 +128,30 @@ export class UserService {
           requestDate: 1,
           user: {
             _id: 1, // Include these fields for the user object
-            fullImage: 1,
+            fullImage1: 1,
             age: 1,
             governorate: 1,
             jobTitle: 1,
+            businessType: 1
           },
         },
       },
       {
-        $match: query
+        $match:{
+          'user._id': {$ne: userId}
+        }
       },
     ];
 
     const pendingConnections = await this.pendingConnection_model.aggregate(aggregation);
-    console.log("pending", pendingConnections)
 
     return pendingConnections;
   }
   async getTimeline(filterDto: TimelineFilterDto, gender: GenderEnum, userId: mongoose.Types.ObjectId) {
+    const str1: any = filterDto.governorate
+    const govs = str1.split(",");
+    const str2: any = filterDto.schoolType
+    const schos = str2.split(",");
     const query: any = {
       firstName: { $ne: null },
       lastName: { $ne: null },
@@ -142,15 +162,13 @@ export class UserService {
     const otherQuery: any = {}
     if(gender == GenderEnum.انثى){
       query.gender = GenderEnum.ذكر;
-      console.log(gender, query.gender, 1)
     } else{
       query.gender = GenderEnum.انثى
-      console.log(gender, query.gender, 2)
     }
     if(filterDto){
-      if (filterDto.governorate !== undefined && filterDto.governorate != "") {
-        query.governorate = filterDto.governorate;
-        otherQuery['user.governorate'] = filterDto.governorate
+      if (govs[0] !== '') {
+        query.governorate = { $in: govs } ;
+        otherQuery['user.governorate'] = { $in: govs }
       }
       if (filterDto.minAge && filterDto.maxAge) {
         query.age = { $gte: parseInt(filterDto.minAge), $lte: parseInt(filterDto.maxAge) };
@@ -158,31 +176,31 @@ export class UserService {
       }
       if (filterDto.apartment !== undefined && filterDto.apartment !== "") {
         query.apartment = filterDto.apartment==="true";
-        otherQuery['user.apartment'] = filterDto.apartment==="true";
+        otherQuery['user.apartment'] = {$ne: filterDto.apartment !== "true"};
       }
       if (filterDto.car !== undefined && filterDto.car !== "") {
         query.car = filterDto.car==="true";
-        otherQuery['user.car'] = filterDto.car==="true";
+        otherQuery['user.car'] = {$ne: filterDto.car !== "true"};
       }
       if (filterDto.job !== undefined && filterDto.job !== "") {
         query.job = filterDto.job==="true";
-        otherQuery['user.job'] = filterDto.job==="true";
+        otherQuery['user.job'] = {$ne: filterDto.job !== "true"};
       }
       if (filterDto.businessOwner !== undefined && filterDto.businessOwner !== "") {
         query.businessOwner = filterDto.businessOwner==="true";
-        otherQuery['user.businessOwner'] = filterDto.businessOwner==="true";
+        otherQuery['user.businessOwner'] = {$ne: filterDto.businessOwner !== "true"};
       }
       if (filterDto.marriedBefore !== undefined && filterDto.marriedBefore !== "") {
         query.marriedBefore = filterDto.marriedBefore==="true";
-        otherQuery['user.marriedBefore'] = filterDto.marriedBefore==="true";
+        otherQuery['user.marriedBefore'] = {$ne: filterDto.marriedBefore !== "true"};
       }
       if (filterDto.children !== undefined && filterDto.children !== "") {
         query.children = filterDto.children==="true";
-        otherQuery['user.children'] = filterDto.children==="true";
+        otherQuery['user.children'] = {$ne: filterDto.children !== "true"};
       }
-      if (filterDto.schoolType !== undefined &&filterDto.schoolType != "") {
-        query.schoolType = filterDto.schoolType;
-        otherQuery['user.schoolType'] = filterDto.schoolType;
+      if (schos[0] !== '') {
+        query.schoolType = { $in: schos }  ;
+        otherQuery['user.schoolType'] = { $in: schos }  ;
       }
       if (filterDto.religion !== undefined && filterDto.religion != "") {
         query.religion = filterDto.religion;
@@ -198,16 +216,16 @@ export class UserService {
     }
     // get user Connections
     const connections = await this.getConnectionUserIds(userId);
+    const rejectedConnections = await this.getRejectedConnectionUserIds(userId);
     const pending = await this.getPendingConnectionUserIds(userId)
-    query._id = {$nin: [...connections, ...pending]}
-    const users = await this.user_model.find(query, 'fullImage age governorate jobTitle');
-    const pendingSenderConnections = await this.getPendingSenderConnectionUsers(userId, otherQuery)
-    const pendingReciverConnections = await this.getPendingReceiverConnectionUsers(userId, otherQuery)
+    query._id = {$nin: [...connections, ...rejectedConnections, ...pending]}
+    const users = await this.user_model.find(query, 'fullImage1 age governorate jobTitle businessType');
+    const pendingSenderConnections = await this.getPendingSenderConnectionUsers(userId)
+    const pendingReciverConnections = await this.getPendingReceiverConnectionUsers(userId)
     const timelineUsers = [];
     timelineUsers.push(...users.map((user) => ({
-      ...user.toObject(), // Convert to plain object
+      ...user.toObject(),
     })));
-
     return {pendingSenderConnections, pendingReciverConnections, timelineUsers};
   }
   async findUserById(id: string){
@@ -295,7 +313,34 @@ export class UserService {
         connectionData = connection.userId2
       return connectionData
     });
-    console.log(connections)
+    return connectionResponses;
+  }
+  async userRejectedConnections(userId: string) {
+    const userObjectId: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(userId);
+    const rejectedConnections = await this.rejectConnection_model.find({
+      $or: [{ sender: userObjectId }, { receiver: userObjectId }],
+    },{ requestDate: 1, rejectDate: 1 })
+      .populate({
+        path: 'sender',
+        select: '_id firstName lastName',
+        match: {_id: {$ne: userObjectId}}
+      })
+      .populate({
+        path: 'receiver',
+        select: '_id firstName lastName',
+        match: {_id: {$ne: userObjectId}}
+      })
+      .exec();
+    const connectionResponses = rejectedConnections.map((connection) => {
+      let connectionData: any  = {}
+      if(connection.sender)
+        connectionData.user = connection.sender
+      else
+        connectionData.user = connection.receiver
+      connectionData.requestDate = connection.requestDate
+      connectionData.rejectDate = connection.rejectDate
+      return connectionData
+    });
     return connectionResponses;
   }
   async getAllUserDate(id: string){
@@ -303,25 +348,8 @@ export class UserService {
     return user
   }
   async getUser(id: string): Promise<any>{
-    const userData: any = {};
-    const user = await this.user_model.findById(id);
-    userData.faceImage = user.faceImage;
-    userData.fullImage = user.fullImage;
-    userData.governorate = user.governorate;
-    userData.address = user.address;
-    userData.religion = user.religion;
-    userData.qualification = user.qualification;
-    userData.college = user.college;
-    userData.schoolType = user.schoolType;
-    userData.age = user.age;
-    userData.height = user.height;
-    userData.weight = user.weight;
-    userData.jobTitle = user.jobTitle;
-    userData.apartment = user.apartment;
-    userData.car = user.car;
-    userData.habbits = user.habits;
-    userData.otherInfo = user.otherInfo;
-    return userData
+    const user = await this.user_model.findById(id, {password: 0, idImage: 0});
+    return user
   }
   async sendRequest(senderId: string, receiverId: string): Promise<string>{
     const senderIdObject: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(senderId)
@@ -350,6 +378,17 @@ export class UserService {
     })
     return "request sent successfully"
   }
+  async sendFriendRequestEmail(userName: string, email: any): Promise<string>{
+    await this.mailer_service.sendMail({
+      to: email.email,
+      subject: 'Lekaa',
+      html: `
+ لقد ابدي     
+       <span style="color: red; font-weight: bold;">${userName}</span>
+   رغبه في التواصل الاسري مع حضرتك ، يرجي مراجعة الطلب و ابداء الرأي بالموافقة أو الرفض.    `
+    })
+    return "email sent successfully"
+  }
   async acceptRequest(senderId: string, receiverId: string): Promise<string> {
     const sender1IdMongooseObject: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(senderId)
     const sender2IdMongooseObject: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(receiverId)
@@ -359,33 +398,65 @@ export class UserService {
         receiver: sender2IdMongooseObject
       }
     )
+    console.log(pendingConnection.deletedCount)
     if(pendingConnection.deletedCount == 1){
       const currentDate: Date = new Date();
       const formattedConnectionDate: string = currentDate.toISOString().slice(0, 10);
-      await this.connection_model.create({
+      const connection = await this.connection_model.create({
         userId1: sender1IdMongooseObject,
         userId2: sender2IdMongooseObject,
-        connectionDate: formattedConnectionDate
+        connectionDate: formattedConnectionDate,
+        commission: undefined
       })
+      await connection.save();
+      console.log(connection)
     }else{
       throw new BadRequestException("send connection request first")
     }
     return "accepted connection successfully";
   }
   async rejectRequest(senderId: string, receiverId: string): Promise<string> {
+
     const senderIdMongooseObject: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(senderId)
     const receiverIdMongooseObject: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(receiverId)
-    const pendingConnection: mongoose.mongo.DeleteResult = await this.pendingConnection_model.deleteOne(
+    const pendingConnection = await this.pendingConnection_model.findOneAndDelete(
       {sender: senderIdMongooseObject, receiver: receiverIdMongooseObject}
     )
-    if(pendingConnection.deletedCount == 1){
+
+    if(pendingConnection){
+      const rejectedDate = new Date().toISOString().slice(0, 10);
+      const rejectedConnections = await this.rejectConnection_model.create({
+        sender: senderIdMongooseObject,
+        receiver: receiverIdMongooseObject,
+        requestDate: pendingConnection.requestDate,
+        rejectDate: rejectedDate
+      })
+      await rejectedConnections.save()
+      console.log(rejectedConnections)
       return "rejected connection successfully";
-    }else{
-      throw new BadRequestException("send connection request first")
     }
+    else
+      throw new BadRequestException("send connection request first")
   }
   async getAllUsers(){
-    const allUsers = await this.user_model.find({}, {password: 0});
+    const allUsers = await this.user_model.find({isCompleted: true}, {password: 0});
     return allUsers
+  }
+
+  async removeConnection(userId1: mongoose.Types.ObjectId, userId2: mongoose.Types.ObjectId) {
+    await this.connection_model.findOneAndDelete(
+      {$or: [{ userId1, userId2  }, { userId1: userId2, userId2: userId1}]}
+    )
+    return "connection successfully removed"
+  }
+
+  async confirmConnectionStatus(userId1: mongoose.Types.ObjectId, userId2: mongoose.Types.ObjectId): Promise <boolean> {
+    const connection = await this.connection_model.findOne(
+      {$or: [{ userId1: userId2, userId2: userId1 }, { userId1, userId2}]},
+    )
+    console.log(connection)
+    const commission = connection.commission
+    console.log(commission)
+    return !(commission == undefined || !commission);
   }
 }

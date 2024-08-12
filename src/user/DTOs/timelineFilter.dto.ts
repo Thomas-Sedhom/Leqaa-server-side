@@ -1,8 +1,7 @@
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 export class TimelineFilterDto {
   @IsOptional()
-  @IsString()
-  governorate?: string;
+  governorate?: string[];
 
   @IsOptional()
   minAge?: string;
@@ -29,8 +28,7 @@ export class TimelineFilterDto {
   children?: string;
 
   @IsOptional()
-  @IsString()
-  schoolType?: string;
+  schoolType?: string[];
 
   @IsOptional()
   @IsString()

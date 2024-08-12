@@ -3,7 +3,9 @@ export class SignupDto{
   @IsNotEmpty()
   @IsEmail()
   email: string;
+  @IsNotEmpty({message: 'يجب ملئ رقم الهاتف'})
+  phone: string;
   @IsNotEmpty()
-  @Matches(/^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$_#!%*?&]{8,}$/, { message: 'Password must contain at least one lowercase letter, one uppercase letter, one digit, one special character, and be 8 characters long' })
+  @Matches(/.{8,}/, { message: 'يجب ان يحتوي الرقم السري علي حرف كبير و رقم و لا يقل عن 8 احرف' })
   password: string;
 }
