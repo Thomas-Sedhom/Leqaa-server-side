@@ -9,6 +9,9 @@ import { UserService } from "../user/user.service";
 import { RejectedConnection } from "../schemas/rejectedConnection.schema";
 import { MailerService } from "@nestjs-modules/mailer";
 import { WarningEmailDTO } from "./DTOs/warningEmail.DTO";
+import { PaginationDTO } from "../shared/DTOs/pagination.dto";
+import { PaginationUtil } from "../shared/utils/pagination.util";
+import { IncompleteConnection } from "../schemas/incompleteConnection.schema";
 
 @Injectable()
 export class AdminService {
@@ -18,6 +21,7 @@ export class AdminService {
     @InjectModel(Connection.name) private connection_model: Model<Connection>,
     @InjectModel(PendingConnection.name) private pendingConnection_model: Model<PendingConnection>,
     @InjectModel(RejectedConnection.name) private rejectedConnection_model: Model<RejectedConnection>,
+    @InjectModel(IncompleteConnection.name) private incompleteConnection_model: Model<IncompleteConnection>,
     private readonly user_service: UserService,
     private readonly mailer_service: MailerService,
   ) {}
@@ -28,7 +32,7 @@ export class AdminService {
   async getNotApprovedUsers(){
     const users = await this.user_model.find(
         {isApprove: false, isCompleted: true},
-        {_id: 1, firstName: 1, lastName: 1, registrationDate: 1}
+        {_id: 1, firstName: 1, lastName: 1, phone: 1, registrationDate: 1}
     );
     return users;
   }
@@ -97,6 +101,10 @@ export class AdminService {
         id,
         {
           isCompleted: false,
+          sprint1: false,
+          sprint2: false,
+          sprint3: false,
+          sprint4: false,
           warning: warning.warningInput,
           latestWarningDate: formattedWarningDate
         }
@@ -117,14 +125,17 @@ export class AdminService {
     return users;
   }
   async getAllUsers(){
-    const  allUsers = await this.user_model.find({isCompleted: true});
+    const  allUsers = await this.user_model.find({isCompleted: true, isApprove: true});
     return allUsers
   }
 
   async block(id: mongoose.Types.ObjectId) {
     await this.user_model.findByIdAndUpdate(
       id,
-      { block: true },
+      {
+        block: true,
+        isHidden: true
+      },
       {new: true}
     );
     return "user blocked successfully";
@@ -132,13 +143,28 @@ export class AdminService {
   async unBlock(id: mongoose.Types.ObjectId) {
     await this.user_model.findByIdAndUpdate(
       id,
-      { block: false },
+      {
+        block: false,
+        isHidden: false
+      },
       {new: true}
     );
     return "user unBlocked successfully";
   }
   async removeRequest(id: mongoose.Types.ObjectId): Promise<string> {
-    await this.pendingConnection_model.findByIdAndDelete(id)
+    const pendingConnection = await this.pendingConnection_model.findByIdAndDelete(id);
+    if(pendingConnection){
+      const rejectedDate = new Date().toISOString().slice(0, 10);
+      const rejectedConnections = await this.rejectedConnection_model.create({
+        sender: pendingConnection.sender,
+        receiver: pendingConnection.receiver,
+        requestDate: pendingConnection.requestDate,
+        rejectDate: rejectedDate
+      })
+      await rejectedConnections.save()
+      console.log(rejectedConnections)
+      return "rejected connection successfully";
+    }
     return "Pending removed successfully";
   }
   async acceptRequest(userId1: mongoose.Types.ObjectId, userId2: mongoose.Types.ObjectId) {
@@ -190,5 +216,51 @@ export class AdminService {
 
   async commission(id: mongoose.Types.ObjectId, commission: string) {
     await this.connection_model.findByIdAndUpdate(id, {commission})
+  }
+
+  async incompleteUsersCount(){
+    const filter = {
+      isCompleted: false,
+      isApprove: false,
+      warning: ""
+    }
+    const totalCount = await this.user_model.countDocuments(filter).exec();
+    return totalCount;
+  }
+  async incompleteUsers(paginationQuery: PaginationDTO) {
+    const filter = {
+      isCompleted: false,
+      isApprove: false,
+      warning: ""
+    }
+    const incompleteUsers = await PaginationUtil(paginationQuery, this.user_model, filter);
+    return incompleteUsers
+  }
+
+  async incompleteConnection(connectionId: mongoose.Types.ObjectId) {
+    const connection = await this.connection_model.findByIdAndDelete(connectionId);
+    const incompleteDate: string = new Date().toISOString().slice(0, 10);
+    const incompleteconnection = await this.incompleteConnection_model.create({
+      userId1: connection.userId1,
+      userId2: connection.userId2,
+      incompleteDate
+    });
+    await incompleteconnection.save();
+    return incompleteconnection;
+  }
+
+  async incompleteConnections() {
+    const incompleteconnections = await this.incompleteConnection_model
+      .find({}, {incompleteDate: 1})
+      .populate({
+        path: 'userId1',
+        select: 'firstName lastName'
+      })
+      .populate({
+        path: 'userId2',
+        select: 'firstName lastName'
+      })
+      .exec();
+    return incompleteconnections
   }
 }

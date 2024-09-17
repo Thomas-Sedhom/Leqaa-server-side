@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller, Get, Param,
   Post,
@@ -32,6 +33,7 @@ import { Sprint1DTO } from "./Dtos/sprint1.DTO";
 import { Sprint2DTO } from "./Dtos/sprint2.DTO";
 import { Sprint3DTO } from "./Dtos/sprint3.DTO";
 import { Sprint4DTO } from "./Dtos/sprint4.DTO";
+import { UpdatePassByPhoneDto } from "./Dtos/updatePassByPhone.dto";
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth_service: AuthService, private readonly firebase_service: FirebaseService) {}
@@ -53,11 +55,21 @@ export class AuthController {
     });
     res.json({ token });
   }
+  // @Post('resendCode')
+  // async resendCode(@Body('email') email: string): Promise<string>{
+  //   try{
+  //     await this.auth_service.resendVerificationCode(email);
+  //     return "code resent successfully";
+  //   }catch (err){
+  //     return err
+  //   }
+  // }
+
   @Post('resendCode')
-  async resendCode(@Body('email') email: string): Promise<string>{
+  async resendCode(@Body('email') email: string): Promise<any>{
     try{
-      await this.auth_service.resendVerificationCode(email);
-      return "code resent successfully";
+      const OTP = await this.auth_service.resendVerificationCode(email);
+      return {OTP};
     }catch (err){
       return err
     }
@@ -71,6 +83,7 @@ export class AuthController {
     @Res() res: Response
   ){
     try{
+      console.log(sprint1)
       await this.auth_service.sprint1(req.user._id, sprint1)
       res.json("sprint1 completed successfully")
     }catch (error){
@@ -130,54 +143,83 @@ export class AuthController {
       fullImage4?: Express.Multer.File[],
       fullImage5?: Express.Multer.File[],
       idImage?: Express.Multer.File[],
-      // manWithIdImage?: Express.Multer.File[]
     },
     @Req() req: CustomRequest,
     @Res() res: Response
-  ){
-    try{
-      if(files.faceImage != undefined){
-        const faceImageUrl: string| undefined = await this.firebase_service.uploadImageToCloud(files.faceImage, `\`${req.user.id}\`/`);
-        sprint4.faceImage = faceImageUrl;
+  ) {
+    const startTime = Date.now();
+
+    try {
+      const uploadPromises = [];
+
+      if (files.faceImage) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.faceImage, `\`${req.user.id}\`/`)
+            .then((url) => { sprint4.faceImage = url; })
+        );
       }
-      if(files.fullImage1 != undefined){
-        const fullImageUrl: any = await this.firebase_service.uploadImageToCloud(files.fullImage1, `\`${req.user.id}\`/`);
-        sprint4.fullImage1 = fullImageUrl;
+      if (files.fullImage1) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.fullImage1, `\`${req.user.id}\`/`)
+            .then((url) => { sprint4.fullImage1 = url; })
+        );
       }
-      if(files.fullImage2 != undefined){
-        const fullImageUrl: any = await this.firebase_service.uploadImageToCloud(files.fullImage2, `\`${req.user.id}\`/`);
-        sprint4.fullImage2 = fullImageUrl;
+      if (files.fullImage2) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.fullImage2, `\`${req.user.id}\`/`)
+            .then((url) => { sprint4.fullImage2 = url; })
+        );
       }
-      if(files.fullImage3 != undefined){
-        const fullImageUrl: any = await this.firebase_service.uploadImageToCloud(files.fullImage3, `\`${req.user.id}\`/`);
-        sprint4.fullImage3 = fullImageUrl;
+      if (files.fullImage3) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.fullImage3, `\`${req.user.id}\`/`)
+            .then((url) => { sprint4.fullImage3 = url; })
+        );
       }
-      if(files.fullImage4 != undefined){
-        const fullImageUrl: any = await this.firebase_service.uploadImageToCloud(files.fullImage4, `\`${req.user.id}\`/`);
-        sprint4.fullImage4 = fullImageUrl;
+      if (files.fullImage4) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.fullImage4, `\`${req.user.id}\`/`)
+            .then((url) => { sprint4.fullImage4 = url; })
+        );
       }
-      if(files.fullImage5 != undefined){
-        const fullImageUrl: any = await this.firebase_service.uploadImageToCloud(files.fullImage5, `\`${req.user.id}\`/`);
-        sprint4.fullImage5 = fullImageUrl;
+      if (files.fullImage5) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.fullImage5, `\`${req.user.id}\`/`)
+            .then((url) => { sprint4.fullImage5 = url; })
+        );
       }
-      if(files.idImage != undefined){
-        const idImageUrl: any = await this.firebase_service.uploadImageToCloud(files.idImage, `\`${req.user.id}\`/`);
-        sprint4.idImage = idImageUrl;
+      if (files.idImage) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.idImage, `\`${req.user.id}\`/`)
+            .then((url) => { sprint4.idImage = url; })
+        );
       }
-      // const manWithIdImageUrl: any = await this.firebase_service.uploadImageToCloud(files.manWithIdImage, `\`${req.user.id}\`/`);
-      // completeReg.manWithIdImage = manWithIdImageUrl;
-      if(files.fullImage1 === null) sprint4.fullImage1 = null
-      if(files.fullImage2 === null) sprint4.fullImage2 = null
-      if(files.fullImage3 === null) sprint4.fullImage3 = null
-      if(files.fullImage4 === null) sprint4.fullImage4 = null
-      if(files.fullImage5 === null) sprint4.fullImage5 = null
-      await this.auth_service.sprint4(req.user._id, sprint4)
-      res.json("data completed successfully, wait for approved profile")
-    }catch (error){
-      res.json(error)
+      const uploadResults = await Promise.allSettled(uploadPromises);
+
+      uploadResults.forEach((result, index) => {
+        if (result.status === "rejected") {
+          throw new BadRequestException(`Upload failed: ${result.reason}`);
+          // Optionally, you can add logic here to handle retries or mark which files failed.
+        } else {
+          console.log(`Upload succeeded with status : ${result.status}`);
+        }
+      });
+
+      // Proceed with updating the sprint4 information regardless of individual upload failures.
+      await this.auth_service.sprint4(req.user._id, sprint4);
+      res.json({
+        message: "Data completed successfully, wait for approved profile",
+        failedUploads: uploadResults.filter(result => result.status === "rejected").length,
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: error.message });
+    } finally {
+      const endTime = Date.now();
+      const timeTaken = endTime - startTime;
+      console.log(`sprint4 endpoint executed in ${timeTaken} ms`);
     }
   }
-
   @Post("completeRegistration")
   @UseGuards(AuthGuard)
   @UseGuards(IsCompletedUserGuard)
@@ -484,6 +526,99 @@ export class AuthController {
       return err;
     }
   }
+  @UseGuards(AdminGuard)
+  @Post("completeUser/:userId")
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'faceImage', maxCount: 1 },
+    { name: 'fullImage1', maxCount: 1 },
+    { name: 'fullImage2', maxCount: 1 },
+    { name: 'fullImage3', maxCount: 1 },
+    { name: 'fullImage4', maxCount: 1 },
+    { name: 'fullImage5', maxCount: 1 },
+    { name: 'idImage', maxCount: 1 },
+    // { name: 'manWithIdImage', maxCount: 1 },
+  ]))
+  async completeUser(
+    @Param('userId') userId: string,
+    @Body() user: UserDto,
+    @UploadedFiles() files: {
+      faceImage?: Express.Multer.File[],
+      fullImage1?: Express.Multer.File[],
+      fullImage2?: Express.Multer.File[],
+      fullImage3?: Express.Multer.File[],
+      fullImage4?: Express.Multer.File[],
+      fullImage5?: Express.Multer.File[],
+      idImage?: Express.Multer.File[],
+      // manWithIdImage?: Express.Multer.File[]
+    },
+  ){
+    const startTime = Date.now();
+    try{
+      const id: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(userId);
+      const uploadPromises = [];
+
+      if (files.faceImage) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.faceImage, `\`${user.email}\`/`)
+            .then((url) => { user.faceImage = url; })
+        );
+      }
+      if (files.fullImage1) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.fullImage1, `\`${user.email}\`/`)
+            .then((url) => { user.fullImage1 = url; })
+        );
+      }
+      if (files.fullImage2) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.fullImage2, `\`${user.email}\`/`)
+            .then((url) => { user.fullImage2 = url; })
+        );
+      }
+      if (files.fullImage3) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.fullImage3, `\`${user.email}\`/`)
+            .then((url) => { user.fullImage3 = url; })
+        );
+      }
+      if (files.fullImage4) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.fullImage4, `\`${user.email}\`/`)
+            .then((url) => { user.fullImage4 = url; })
+        );
+      }
+      if (files.fullImage5) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.fullImage5, `\`${user.email}\`/`)
+            .then((url) => { user.fullImage5 = url; })
+        );
+      }
+      if (files.idImage) {
+        uploadPromises.push(
+          this.firebase_service.uploadImageToCloud(files.idImage, `\`${user.email}\`/`)
+            .then((url) => { user.idImage = url; })
+        );
+      }
+      const uploadResults = await Promise.allSettled(uploadPromises);
+
+      uploadResults.forEach((result, index) => {
+        if (result.status === "rejected") {
+          throw new BadRequestException(`Upload failed: ${result.reason}`);
+          // Optionally, you can add logic here to handle retries or mark which files failed.
+        } else {
+          console.log(`Upload succeeded with status : ${result.status}`);
+        }
+      });
+      const createUser = await this.auth_service.completeUser(id, user);
+      return createUser;
+    }catch (err){
+      return err;
+    }finally {
+      const endTime = Date.now();
+      const timeTaken = endTime - startTime;
+      console.log(`completeUser endpoint executed in ${timeTaken} ms`);
+    }
+  }
   @Post("forgetPassword")
   async forgetPassword(@Body("email") email: string ): Promise<any>{
     try{
@@ -512,6 +647,15 @@ export class AuthController {
       return error;
     }
   }
+  @Post("updatePasswordByPhone")
+  async updatePasswordByPhone(@Body() data: UpdatePassByPhoneDto): Promise <any>{
+    try{
+      const updatePass = await this.auth_service.updatePasswordByPhone(data);
+      return updatePass
+    }catch (error){
+      return error;
+    }
+  }
   @Get('logout')
   logout(@Res() res: Response): void {
     try {
@@ -522,3 +666,4 @@ export class AuthController {
     }
   }
 }
+//https://chatgpt.com/share/5f84a0aa-1cfc-492d-b361-6c1b5181075d

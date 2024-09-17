@@ -21,6 +21,7 @@ import { Sprint1DTO } from "./Dtos/sprint1.DTO";
 import { Sprint2DTO } from "./Dtos/sprint2.DTO";
 import { Sprint3DTO } from "./Dtos/sprint3.DTO";
 import { Sprint4DTO } from "./Dtos/sprint4.DTO";
+import { UpdatePassByPhoneDto } from "./Dtos/updatePassByPhone.dto";
 @Injectable()
 export class AuthService {
   constructor(
@@ -56,7 +57,8 @@ export class AuthService {
       phone: string;
       password: string
     };
-    await this.sendVerificationEmail(storeVerification.verification, email);
+    return storeVerification.verification;
+    // await this.sendVerificationEmail(storeVerification.verification, email);
   }
   async storeVerificationData(verificationCode: string, signupDto: SignupDto): Promise<void>{
     const hashPassword: string = await hashPass(signupDto.password);
@@ -98,10 +100,14 @@ export class AuthService {
     if(storeVerification.verification != verifyDto.verification )
       throw new BadRequestException("wrong verify code");
 
+    const currentDate: Date = new Date();
+    const formattedRegistrationDate: string = currentDate.toISOString().slice(0, 10);
+
     const createUser = await this.userModel.create({
       email: storeVerification.email,
       phone: storeVerification.phone,
-      password: storeVerification.password
+      password: storeVerification.password,
+      registrationDate: formattedRegistrationDate,
     })
     const user = await createUser.save();
     const token: string = await this.createToken(user._id);
@@ -112,6 +118,8 @@ export class AuthService {
   }
   async sprint1(id: string, sprint1: Sprint1DTO) {
     const form: any = {}
+    const currentDate: Date = new Date();
+    const formattedRegistrationDate: string = currentDate.toISOString().slice(0, 10);
     form.firstName = sprint1.firstName;
     form.midName = sprint1.midName;
     form.lastName = sprint1.lastName;
@@ -125,6 +133,7 @@ export class AuthService {
     form.address = sprint1.address;
     form.phone = sprint1.phone;
     form.sprint1 = true;
+    form.registrationDate = formattedRegistrationDate;
     const user = await this.userModel.findByIdAndUpdate(id,
       form
       , { new: true } )
@@ -132,6 +141,8 @@ export class AuthService {
   }
 
   async sprint2(id: string, sprint2: Sprint2DTO) {
+    const currentDate: Date = new Date();
+    const formattedRegistrationDate: string = currentDate.toISOString().slice(0, 10);
     const form: any = {}
     form.club = sprint2.club;
     form.qualification = sprint2.qualification;
@@ -142,6 +153,7 @@ export class AuthService {
     form.specialization = sprint2.specialization;
     form.religion = sprint2.religion;
     form.sprint2 = true;
+    form.registrationDate = formattedRegistrationDate;
     const user = await this.userModel.findByIdAndUpdate(id,
       form
       , { new: true } )
@@ -149,6 +161,8 @@ export class AuthService {
   }
 
   async sprint3(id: string, sprint3: Sprint3DTO) {
+    const currentDate: Date = new Date();
+    const formattedRegistrationDate: string = currentDate.toISOString().slice(0, 10);
     const form: any = {}
     form.height = sprint3.height;
     form.weight = sprint3.weight;
@@ -160,6 +174,7 @@ export class AuthService {
     form.habits = sprint3.habbits
     form.otherInfo = sprint3.otherInfo
     form.sprint3 = true;
+    form.registrationDate = formattedRegistrationDate;
     const user = await this.userModel.findByIdAndUpdate(id,
       form
       , { new: true } )
@@ -459,6 +474,10 @@ export class AuthService {
     form.otherInfo = user.otherInfo;
     form.livingAbroad = user.livingAbroad === "true";
     form.isCompleted = true;
+    form.sprint1 = true;
+    form.sprint2 = true;
+    form.sprint3 = true;
+    form.sprint4 = true;
     form.registrationDate = formattedRegistrationDate;
     form.warning = "";
     form.password = '00000000';
@@ -470,9 +489,6 @@ export class AuthService {
     return {message:  "user created successfully" };
   }
   async updateUser(id: mongoose.Types.ObjectId, user: UserDto) {
-    const currentDate: Date = new Date();
-    const formattedRegistrationDate: string = currentDate.toISOString().slice(0, 10);
-
     const form: any = {}
     form.firstName = user.firstName;
     form.midName = user.midName;
@@ -559,8 +575,6 @@ export class AuthService {
     form.habits = user.habbits;
     form.otherInfo = user.otherInfo;
     form.livingAbroad = user.livingAbroad === "true";
-    form.registrationDate = formattedRegistrationDate;
-    form.password = '00000000';
     form.email = user.email;
     // manWithIdImage:completeReg.manWithIdImage,
     const userData = await this.userModel.findByIdAndUpdate(id,
@@ -620,5 +634,118 @@ export class AuthService {
   }
 
 
+  async completeUser(id: mongoose.Types.ObjectId, user: UserDto) {
+    const currentDate: Date = new Date();
+    const formattedRegistrationDate: string = currentDate.toISOString().slice(0, 10);
+    const form: any = {}
+    form.firstName = user.firstName;
+    form.midName = user.midName;
+    form.lastName = user.lastName;
+    form.age = user.age;
+    form.gender = user.gender;
+    form.DOB = user.DOB;
+    form.nationality = user.nationality;
+    form.governorate = user.governorate;
+    form.city = user.city;
+    form.region = user.region;
+    form.address = user.address;
+    form.phone = user.phone;
+    form.club = user.club;
+    form.qualification = user.qualification;
+    form.school = user.school;
+    form.schoolType = user.schoolType;
+    form.college = user.college;
+    form.university = user.university;
+    form.specialization = user.specialization;
+    form.languages = user.languages;
+    form.religion = user.religion;
+    form.height = user.height;
+    form.weight = user.weight;
+    form.skinColor = user.skinColor;
+    form.permanentDiseases = user.permanentDiseases === "true";
+    form.permanentDiseasesDetails = user.permanentDiseasesDetails;
+    form.disability =  user.disability === "true";
+    form.disabilityDetails = user.disabilityDetails;
 
+    if(user.faceImage)
+      form.faceImage = user.faceImage;
+
+    if(user.fullImage1 != "undefined")
+      user.fullImage1 == "null" ?
+        form.fullImage1 = null :
+        form.fullImage1 = user.fullImage1;
+
+    if(user.fullImage2 != "undefined")
+      user.fullImage2 == "null" ?
+        form.fullImage2 = null :
+        form.fullImage2 = user.fullImage2;
+
+    if(user.fullImage3 != "undefined")
+      user.fullImage3 == "null" ?
+        form.fullImage3 = null :
+        form.fullImage3 = user.fullImage3;
+
+    if(user.fullImage4 != "undefined")
+      user.fullImage4 == "null" ?
+        form.fullImage4 = null :
+        form.fullImage4 = user.fullImage4;
+
+    if(user.fullImage5 != "undefined")
+      user.fullImage5 == "null" ?
+        form.fullImage5 = null :
+        form.fullImage5 = user.fullImage5;
+
+    if(user.idImage)
+      form.idImage = user.idImage;
+
+    form.languages = user.languages;
+    form.car = user.car === "true";
+    form.carModel = user.carModel;
+    form.carType = user.carType;
+    form.apartment = user.apartment === "true";
+    form.space = user.space;
+    form.site = user.site;
+    form.businessOwner = user.businessOwner === "true";
+    form.businessType = user.businessType;
+    form.job = user.job === "true";
+    form.jobTitle = user.jobTitle;
+    form.jobCompany = user.jobCompany;
+    form.marriedBefore = user.marriedBefore === "true";
+    form.marriedNow = user.marriedNow === "true";
+    form.children = user.children === "true";
+    form.numberOfChildren = user.numberOfChildren;
+    form.agesOfChildren = user.agesOfChildren;
+    form.nameOfTheApplicantGuardian = user.nameOfTheApplicantGuardian;
+    form.relationWithApplicant = user.relationWithApplicant;
+    form.phoneOfGuardian = user.phoneOfGuardian;
+    form.hobbies = user.hobbies;
+    form.habits = user.habbits;
+    form.otherInfo = user.otherInfo;
+    form.livingAbroad = user.livingAbroad === "true";
+    form.email = user.email;
+    form.sprint1 = true;
+    form.sprint2 = true;
+    form.sprint3 = true;
+    form.sprint4 = true;
+    form.isCompleted = true;
+    form.isApprove = false;
+    form.registrationDate = formattedRegistrationDate;
+    // manWithIdImage:completeReg.manWithIdImage,
+    const userData = await this.userModel.findByIdAndUpdate(id,
+      form
+      , { new: true } )
+    return userData
+  }
+
+  async updatePasswordByPhone(data: UpdatePassByPhoneDto) {
+    const hashPassword: string = await hashPass(data.password);
+    const user = await this.userModel.findOneAndUpdate(
+      {phone: data.phone},
+      {password: hashPassword}
+    )
+    if(!user)
+      throw new BadRequestException("الحساب غير صحيح")
+    console.log( {message: "password updated successfully" })
+    return {message: "password updated successfully" }
+  }
 }

@@ -8,6 +8,7 @@ import { Admin, AdminSchema } from "../schemas/Admin.schema";
 import { Connection, ConnectionSchema } from "../schemas/Connection.schema";
 import { PendingConnection, PendingConnectionSchema } from "../schemas/PendingConnection.schema";
 import { RejectedConnection, RejectedConnectionSchema } from "../schemas/rejectedConnection.schema";
+import { IncompleteConnection, IncompleteConnectionSchema } from "../schemas/incompleteConnection.schema";
 
 
 @Module({
@@ -19,8 +20,8 @@ import { RejectedConnection, RejectedConnectionSchema } from "../schemas/rejecte
       {name: Admin.name, schema: AdminSchema},
       {name: Connection.name, schema: ConnectionSchema },
       {name: PendingConnection.name, schema: PendingConnectionSchema },
-      {name: RejectedConnection.name, schema: RejectedConnectionSchema }
-
+      {name: RejectedConnection.name, schema: RejectedConnectionSchema },
+      {name: IncompleteConnection.name, schema: IncompleteConnectionSchema},
     ]),
     UserModule,
 

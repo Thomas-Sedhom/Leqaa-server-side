@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
 import { app } from './firebase.config';
 import firebase from "firebase/compat";
@@ -33,6 +33,7 @@ export class FirebaseService {
         downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
         console.log('File available at', downloadURL);
       } catch (err) {
+        throw new BadRequestException(`Error uploading file ${file.originalname}: ${err.message}`)
         console.error(`Error uploading file ${file.originalname}: ${err.message}`);
       }
     }

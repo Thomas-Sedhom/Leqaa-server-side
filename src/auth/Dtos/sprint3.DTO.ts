@@ -2,11 +2,11 @@ import { IsNotEmpty } from "class-validator";
 import { SkinColorEnum } from "../../enums/skinColor.enum";
 
 export class Sprint3DTO{
-  @IsNotEmpty()
+  @IsNotEmpty({message: "يجب تسجيل لون البشرة"})
   skinColor: SkinColorEnum
-  @IsNotEmpty()
+  @IsNotEmpty({message: "يجب تسجيل الطول"})
   height: string
-  @IsNotEmpty()
+  @IsNotEmpty({message: "يجب تسجيل الوزن"})
   weight: string
   nameOfTheApplicantGuardian: string
   relationWithApplicant: string

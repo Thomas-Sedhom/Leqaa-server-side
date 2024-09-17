@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
 import { AdminGuard } from "../shared/guards/admin.guard";
 import { AdminService } from "./admin.service";
 import {CustomRequest} from "../shared/interfaces/custom-request.interface";
@@ -7,6 +7,7 @@ import { RemovePendingRequestDto } from "./DTOs/removePendingRequest";
 import { WarningEmailDTO } from "./DTOs/warningEmail.DTO";
 import { SuperAdminGuard } from "../shared/guards/super.guard";
 import { AuthGuard } from "../shared/guards/auth.guard";
+import { PaginationDTO } from "../shared/DTOs/pagination.dto";
 @UseGuards(AdminGuard)
 @Controller('admin')
 export class AdminController {
@@ -74,6 +75,25 @@ export class AdminController {
       return error
     }
   }
+  @Post('incompleteConnection/:connectionId')
+  async incompleteConnection(@Param('connectionId') connectionId: string): Promise<any>{
+    try{
+      const id: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(connectionId);
+      const incompleteConnection = await this.admin_Service.incompleteConnection(id);
+      return incompleteConnection
+    }catch (error){
+      return error
+    }
+  }
+  @Get('incompleteConnections')
+  async incompleteConnections(): Promise<any>{
+    try{
+      const incompleteConnections = await this.admin_Service.incompleteConnections();
+      return incompleteConnections
+    }catch (error){
+      return error
+    }
+  }
   @Get('pendingRequests')
   async requests(): Promise<any>{
     try{
@@ -99,10 +119,8 @@ export class AdminController {
     @Param('receiver') receiver: string
   ): Promise<any>{
     try{
-      console.log(sender, receiver)
       const userId1: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(sender)
       const userId2: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(receiver)
-      console.log(userId1, userId2)
       const request = await this.admin_Service.acceptRequest(userId1, userId2);
       return request
     }catch (error){
@@ -165,11 +183,30 @@ export class AdminController {
       return error.message;
     }
   }
+  @Get("incompleteUsers")
+  async incompleteUsers(@Query() pagination: PaginationDTO): Promise<any>{
+    try{
+      const incompleteUsers = await this.admin_Service.incompleteUsers(pagination);
+      return incompleteUsers;
+    }catch (err){
+      return err;
+    }
+  }
+  @Get("incompleteUsersCount")
+  async incompleteUsersCount(): Promise<any>{
+    try{
+      const incompleteUsersCount = await this.admin_Service.incompleteUsersCount();
+      return incompleteUsersCount;
+    }catch (err){
+      return err;
+    }
+  }
   @Get("allUsers")
   async getAllUsers(): Promise<any>{
     const allUsers = await this.admin_Service.getAllUsers();
     return allUsers;
   }
+
   @Get("allAdmins")
   @UseGuards(SuperAdminGuard)
   async getAdmins(@Req() req: CustomRequest): Promise<any>{
@@ -199,7 +236,6 @@ export class AdminController {
     @Param('connectionId') connectionId: string
   ): Promise<any>{
     try{
-      console.log(commission);
       const id: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(connectionId);
       await this.admin_Service.commission(id, commission);
       return {message:"commission entered successfully."};

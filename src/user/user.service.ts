@@ -358,8 +358,12 @@ export class UserService {
       { $or: [ {userId1: senderIdObject,  userId2: receiverIdObject}, {userId1: receiverIdObject,  userId2: senderIdObject}] },
     { lean: true }
     )
+    const checkUserConnections = await this.pendingConnection_model.findOne(
+      {sender: senderIdObject})
     if(checkConnection != null)
       throw new BadRequestException("in your connections")
+    if(checkUserConnections != null)
+      throw new BadRequestException("لقد أرسلت طلب تعارف لأحد الأشخاص من قبل. قم بإلغائه لتتمكن من إرسال طلب جديد.")
 
     const checkPendingConnection = await this.pendingConnection_model.findOne(
       {
@@ -379,14 +383,17 @@ export class UserService {
     return "request sent successfully"
   }
   async sendFriendRequestEmail(userName: string, email: any): Promise<string>{
+    console.log("email")
+    console.log(userName,email )
     await this.mailer_service.sendMail({
       to: email.email,
-      subject: 'Lekaa',
+      subject: 'طلب مقابلة',
       html: `
  لقد ابدي     
        <span style="color: red; font-weight: bold;">${userName}</span>
    رغبه في التواصل الاسري مع حضرتك ، يرجي مراجعة الطلب و ابداء الرأي بالموافقة أو الرفض.    `
     })
+    console.log(email)
     return "email sent successfully"
   }
   async acceptRequest(senderId: string, receiverId: string): Promise<string> {
@@ -398,7 +405,6 @@ export class UserService {
         receiver: sender2IdMongooseObject
       }
     )
-    console.log(pendingConnection.deletedCount)
     if(pendingConnection.deletedCount == 1){
       const currentDate: Date = new Date();
       const formattedConnectionDate: string = currentDate.toISOString().slice(0, 10);
@@ -458,5 +464,17 @@ export class UserService {
     const commission = connection.commission
     console.log(commission)
     return !(commission == undefined || !commission);
+  }
+
+  async removeRequest(senderID: mongoose.Types.ObjectId, receiverID: mongoose.Types.ObjectId) {
+    const removeRequest = await this.pendingConnection_model.findOneAndDelete(
+      {sender: senderID, receiver: receiverID}
+    )
+    return removeRequest
+  }
+
+  async getUserByPhone(phone: string) {
+    const user = await this.user_model.findOne({phone})
+    return user
   }
 }

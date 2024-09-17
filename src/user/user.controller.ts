@@ -96,9 +96,21 @@ export class UserController {
     try{
       const senderId: string = req.user._id.toString() ;
       await this.user_service.sendRequest(senderId, id);
-      return "request sent successfully"
+      return {message: "request sent successfully" }
     }catch(error){
-      return error.message;
+      return error;
+    }
+  }
+  @UseGuards(IsApprovedUserGuard)
+  @Delete('timeline/:pendingID/removePendingRequest')
+  async removeRequest(@Param('pendingID') pendingID: string, @Req() req: CustomRequest ): Promise<any>{
+    try{
+      const receiverID: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(pendingID);
+      const senderID: mongoose.Types.ObjectId = req.user._id;
+      const request = await this.user_service.removeRequest(senderID, receiverID);
+      return request
+    }catch (error){
+      return error
     }
   }
   @UseGuards(IsApprovedUserGuard)
@@ -252,4 +264,16 @@ export class UserController {
       return error;
     }
   }
+  @Get("phone/:phone")
+  async getUserByPhone(@Param("phone") phone: string): Promise<any>{
+    try{
+      console.log(phone)
+      const user = await this.user_service.getUserByPhone(phone);
+      console.log(user)
+      return user
+    }catch(error){
+      return error;
+    }
+  }
 }
+
