@@ -39,7 +39,7 @@ export class AuthService {
     }
   }
   async checkPhone(phone: string){
-    const existingUser = await this.userModel.findOne({ phone, isCompleted: true });
+    const existingUser = await this.userModel.findOne({ phone });
     if (existingUser)
       throw new BadRequestException('رقم الهاتف موجود بالفعل');
   }

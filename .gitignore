@@ -2,7 +2,6 @@
 /dist
 /node_modules
 /build
-
 # Logs
 logs
 *.log
@@ -42,6 +41,8 @@ lerna-debug.log*
 .env.production.local
 .env.local
 .development.env
+/src/firebase/firebase.config.ts
+
 # temp directory
 .temp
 .tmp

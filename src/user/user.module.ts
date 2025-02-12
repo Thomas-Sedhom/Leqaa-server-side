@@ -6,6 +6,8 @@ import { User, UserSchema } from "../schemas/User.schema";
 import { Connection, ConnectionSchema } from "../schemas/Connection.schema";
 import { PendingConnection, PendingConnectionSchema } from "../schemas/PendingConnection.schema";
 import { RejectedConnection, RejectedConnectionSchema } from "../schemas/rejectedConnection.schema";
+import { Banner, BannerSchema } from "../schemas/banner.schema";
+import { RemovedPendingConnection, RemovedPendingConnectionSchema } from "../schemas/removedPendingConnection.schema";
 
 @Module({
   controllers: [UserController],
@@ -15,7 +17,9 @@ import { RejectedConnection, RejectedConnectionSchema } from "../schemas/rejecte
       {name: User.name, schema: UserSchema },
       {name: Connection.name, schema: ConnectionSchema },
       {name: PendingConnection.name, schema: PendingConnectionSchema },
-      {name: RejectedConnection.name, schema: RejectedConnectionSchema }
+      {name: RemovedPendingConnection.name, schema: RemovedPendingConnectionSchema },
+      {name: RejectedConnection.name, schema: RejectedConnectionSchema },
+      {name: Banner.name, schema: BannerSchema },
     ]),
   ],
   exports: [

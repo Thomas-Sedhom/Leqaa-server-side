@@ -8,6 +8,8 @@ import { Connection } from "../schemas/Connection.schema";
 import { PendingConnection } from "../schemas/PendingConnection.schema";
 import {MailerService} from "@nestjs-modules/mailer";
 import { RejectedConnection } from "../schemas/rejectedConnection.schema";
+import { Banner } from "../schemas/banner.schema";
+import { RemovedPendingConnection } from "../schemas/removedPendingConnection.schema";
 
 @Injectable()
 export class UserService {
@@ -16,6 +18,8 @@ export class UserService {
     @InjectModel(Connection.name) private connection_model: Model<Connection>,
     @InjectModel(PendingConnection.name) private pendingConnection_model: Model<PendingConnection>,
     @InjectModel(RejectedConnection.name) private rejectConnection_model: Model<RejectedConnection>,
+    @InjectModel(RemovedPendingConnection.name) private removedPendingConnection_model: Model<RemovedPendingConnection>,
+    @InjectModel(Banner.name) private banner_model: Model<Banner>,
     private readonly mailer_service: MailerService,
   ) {}
   private async getConnectionUserIds(userId: mongoose.Types.ObjectId) {
@@ -216,10 +220,10 @@ export class UserService {
     }
     // get user Connections
     const connections = await this.getConnectionUserIds(userId);
-    const rejectedConnections = await this.getRejectedConnectionUserIds(userId);
+    // const rejectedConnections = await this.getRejectedConnectionUserIds(userId);
     const pending = await this.getPendingConnectionUserIds(userId)
-    query._id = {$nin: [...connections, ...rejectedConnections, ...pending]}
-    const users = await this.user_model.find(query, 'fullImage1 age governorate jobTitle businessType');
+    query._id = {$nin: [...connections, ...pending]}
+    const users = await this.user_model.find(query, 'fullImage1 age governorate jobTitle businessType priority');
     const pendingSenderConnections = await this.getPendingSenderConnectionUsers(userId)
     const pendingReciverConnections = await this.getPendingReceiverConnectionUsers(userId)
     const timelineUsers = [];
@@ -271,6 +275,31 @@ export class UserService {
       select: '_id firstName lastName age faceImage',
     })
     return pendingConnections
+  }
+  async userRemovedRequestsFromYou(userId: string){
+    const userObjectId: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(userId);
+    console.log("userID: ", userObjectId);
+    const RemovedRequests = await this.removedPendingConnection_model.find(
+      { sender: userObjectId }, {removedDate: 1}
+    ).populate({
+      path: 'receiver',
+      select: '_id firstName lastName age faceImage',
+    })
+    console.log("userRemovedRequestsFromYou: ",RemovedRequests);
+    return RemovedRequests
+  }
+  async userRemovedRequestsFromOthers(userId: string){
+    const userObjectId: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(userId);
+
+    const RemovedRequests = await this.removedPendingConnection_model.find(
+      {receiver: userObjectId }, {removedDate: 1}
+    ).populate({
+      path: 'sender',
+      select: '_id firstName lastName age faceImage',
+    })
+    console.log("userRemovedRequestsFromOthers: ",RemovedRequests);
+
+    return RemovedRequests
   }
   async checkConnection(user1: string, user2: string): Promise<string>{
     const userObjectId1: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(user1);
@@ -467,6 +496,7 @@ export class UserService {
   }
 
   async removeRequest(senderID: mongoose.Types.ObjectId, receiverID: mongoose.Types.ObjectId) {
+    await this.removedPendingConnection_model.create({sender: senderID, receiver: receiverID})
     const removeRequest = await this.pendingConnection_model.findOneAndDelete(
       {sender: senderID, receiver: receiverID}
     )
@@ -476,5 +506,10 @@ export class UserService {
   async getUserByPhone(phone: string) {
     const user = await this.user_model.findOne({phone})
     return user
+  }
+
+  async getBanner() {
+    const banner = await this.banner_model.find();
+    return banner
   }
 }

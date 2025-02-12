@@ -1,2 +1,7 @@
-auth
-user schema
+-- Delete rejected connection
+1- Admin module
+
+-- Add & get banner
+1- banner schema
+2- admin module
+3- user module

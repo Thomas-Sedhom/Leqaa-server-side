@@ -5,9 +5,9 @@ import { SkinColorEnum } from '../enums/skinColor.enum';
 import * as Joi from '@hapi/joi';
 @Schema()
 export class User {
-  @Prop({  unique: true })
+  @Prop({  unique: true, index: true })
   email: string;
-  @Prop({  })
+  @Prop()
   password: string;
   @Prop({  default: false })
   isCompleted: boolean;
@@ -156,6 +156,8 @@ export class User {
   sprint3: boolean
   @Prop({default: false})
   sprint4: boolean
+  @Prop({default: 1000})
+  priority: number
 }
 export const UserSchema = SchemaFactory.createForClass(User);
 

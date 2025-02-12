@@ -11,6 +11,8 @@ export class Connection {
   connectionDate: string
   @Prop({ default: undefined })
   commission: string
+  @Prop({ required: false })
+  confirmedDate: string
 }
 export const ConnectionSchema = SchemaFactory.createForClass(Connection);
 

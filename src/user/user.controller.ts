@@ -10,13 +10,31 @@ import mongoose from "mongoose";
 @Controller('user')
 export class UserController {
   constructor(private readonly user_service: UserService) {}
-  @UseGuards(IsApprovedUserGuard)
+
+  @UseGuards(AuthGuard)
+  @Get("getSprints")
+  async getSprints(@Req() req: CustomRequest){
+    try{
+      console.log("isApproved",req.user.sprint1)
+      const sprint2 = req.user.sprint2;
+      const sprint3 = req.user.sprint3;
+      const sprint4 = req.user.sprint4;
+      return req.user.isApprove?
+         {isApprove: true}: {isApprove: false, sprint2, sprint3, sprint4};
+    }catch(error){
+      console.log(error)
+      return error.message
+    }
+  }
+
+  @UseGuards(AuthGuard)
   @Get("timeline")
   async timeline(@Query() timelineDto: TimelineFilterDto, @Req() req: CustomRequest): Promise<any>{
     try{
       const timeline = await this.user_service.getTimeline(timelineDto, req.user.gender, req.user._id);
       return timeline
     }catch(error){
+      console.log(error)
       return error.message
     }
   }
@@ -80,7 +98,7 @@ export class UserController {
   //   await this.user_service.visibleProfile(req.user._id);
   //   return "your profile is visible"
   // }
-  @UseGuards(IsApprovedUserGuard)
+  @UseGuards(AuthGuard)
   @Get("timeline/:id")
   async getUser(@Param('id') id: string): Promise<any>{
     try{
@@ -182,7 +200,7 @@ export class UserController {
       return error.message;
     }
   }
-  @UseGuards(IsApprovedUserGuard)
+  @UseGuards(AuthGuard)
   @Get("findConnection/:id")
   async findConnection(@Param('id') user2: string , @Req() req: CustomRequest): Promise<string>{
     const user1 = req.user._id.toString();
@@ -221,6 +239,28 @@ export class UserController {
     }
   }
   @UseGuards(IsApprovedUserGuard)
+  @Get("removedRequestsFromYou")
+  async getRemovedRequestsFromYou(@Req() req: CustomRequest): Promise<any>{
+    try{
+      const userId: string = req.user._id.toString();
+      const allReomvedRequestsFromYou= await this.user_service.userRemovedRequestsFromYou(userId);
+      return allReomvedRequestsFromYou;
+    }catch(error){
+      return error.message;
+    }
+  }
+  @UseGuards(IsApprovedUserGuard)
+  @Get("removedRequestsFromOthers")
+  async getRemovedRequestsFromOthers(@Req() req: CustomRequest): Promise<any>{
+    try{
+      const userId: string = req.user._id.toString();
+      const allReomvedRequestsFromOthers= await this.user_service.userRemovedRequestsFromOthers(userId);
+      return allReomvedRequestsFromOthers;
+    }catch(error){
+      return error.message;
+    }
+  }
+  @UseGuards(IsApprovedUserGuard)
   @Get("connections/:id")
   async getConnectionUSer(@Param('id') id: string): Promise<any>{
     try{
@@ -246,6 +286,7 @@ export class UserController {
   @Get("profile")
   async getProfile(@Req() req: CustomRequest): Promise<any>{
     try{
+      console.log(req.user)
       const user = req.user;
       return user
     }catch(error){
@@ -256,7 +297,7 @@ export class UserController {
   @Get("profile/:userId")
   async getProfileById(@Param("userId") userId: string): Promise<any>{
     try{
-      console.log(userId)
+      console.log(5)
       const user = await this.user_service.getAllUserDate(userId);
       console.log(user)
       return user
@@ -264,6 +305,7 @@ export class UserController {
       return error;
     }
   }
+
   @Get("phone/:phone")
   async getUserByPhone(@Param("phone") phone: string): Promise<any>{
     try{
@@ -273,6 +315,16 @@ export class UserController {
       return user
     }catch(error){
       return error;
+    }
+  }
+
+  @Get("banner")
+  async getBanner(){
+    try{
+      const banner = await this.user_service.getBanner();
+      return banner
+    }catch (err){
+      return err
     }
   }
 }

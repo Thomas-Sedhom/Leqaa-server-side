@@ -12,6 +12,10 @@ import { WarningEmailDTO } from "./DTOs/warningEmail.DTO";
 import { PaginationDTO } from "../shared/DTOs/pagination.dto";
 import { PaginationUtil } from "../shared/utils/pagination.util";
 import { IncompleteConnection } from "../schemas/incompleteConnection.schema";
+import { Banner } from "../schemas/banner.schema";
+import { BannerDto } from "./DTOs/banner.dto";
+import { RemovedPendingConnection } from "../schemas/removedPendingConnection.schema";
+import { GenderEnum } from "../enums/gender.enum";
 
 @Injectable()
 export class AdminService {
@@ -22,6 +26,8 @@ export class AdminService {
     @InjectModel(PendingConnection.name) private pendingConnection_model: Model<PendingConnection>,
     @InjectModel(RejectedConnection.name) private rejectedConnection_model: Model<RejectedConnection>,
     @InjectModel(IncompleteConnection.name) private incompleteConnection_model: Model<IncompleteConnection>,
+    @InjectModel(RemovedPendingConnection.name) private removedPendingConnection_model: Model<RemovedPendingConnection>,
+    @InjectModel(Banner.name) private banner_model: Model<Banner>,
     private readonly user_service: UserService,
     private readonly mailer_service: MailerService,
   ) {}
@@ -46,7 +52,7 @@ export class AdminService {
   };
   async getUsersConnections() {
     const connections = await this.connection_model
-        .find({}, { connectionDate: 1, commission: 1 })
+        .find({}, { connectionDate: 1, commission: 1, confirmedDate: 1 })
         .populate({
           path: 'userId1',
           select: '_id fullImage firstName lastName'
@@ -75,6 +81,20 @@ export class AdminService {
   async getUsersSentRequests() {
     const requests = await this.pendingConnection_model
       .find({}, {requestDate: 1})
+      .populate({
+        path: 'sender',
+        select: '_id firstName lastName',
+      })
+      .populate({
+        path: 'receiver',
+        select: '_id firstName lastName',
+      })
+      .exec();
+    return requests;
+  }
+  async getUsersRemovedRequests() {
+    const requests = await this.removedPendingConnection_model
+      .find({}, {removedDate: 1})
       .populate({
         path: 'sender',
         select: '_id firstName lastName',
@@ -177,11 +197,12 @@ export class AdminService {
     if(pendingConnection.deletedCount == 1){
       const currentDate: Date = new Date();
       const formattedConnectionDate: string = currentDate.toISOString().slice(0, 10);
-      await this.connection_model.create({
+      const connection = await this.connection_model.create({
         userId1,
         userId2,
         connectionDate: formattedConnectionDate
       })
+      console.log(connection)
     }else{
       throw new BadRequestException("send connection request first")
     }
@@ -215,7 +236,8 @@ export class AdminService {
   }
 
   async commission(id: mongoose.Types.ObjectId, commission: string) {
-    await this.connection_model.findByIdAndUpdate(id, {commission})
+    const confirmedDate: string = new Date().toISOString().slice(0, 10);
+    await this.connection_model.findByIdAndUpdate(id, {commission, confirmedDate})
   }
 
   async incompleteUsersCount(){
@@ -262,5 +284,57 @@ export class AdminService {
       })
       .exec();
     return incompleteconnections
+  }
+
+  async deleteRejectedConnection(senderID: string, receiverID: string) {
+    const sender: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(senderID);
+    const receiver: mongoose.Types.ObjectId = new mongoose.Types.ObjectId(receiverID);
+    const object = await this.rejectedConnection_model.deleteOne({sender, receiver});
+    if(!object)
+        throw new BadRequestException("Object not found");
+    return "Rejected connection deleted successfully";
+  }
+
+  async createBanner(bannerDto: BannerDto) {
+    const creationDate: string = new Date().toISOString()
+    await this.banner_model.deleteMany();
+    const banner = await this.banner_model.create({
+      title: bannerDto.title,
+      image: bannerDto.image,
+      creationDate
+    })
+    return banner;
+  }
+
+  async deleteBanner() {
+    await this.banner_model.deleteMany();
+    return "banner deleted successfully";
+  }
+
+  async updatePriority(phone: string,  priority: number): Promise<any>{
+    const updateUser = await this.user_model.findOneAndUpdate({phone}, {priority});
+    if(!updateUser)
+        throw new BadRequestException("User not exist");
+    return updateUser;
+  }
+
+  async removePriority(phone: string): Promise<any>{
+    const updateUser = await this.user_model.findOneAndUpdate({phone}, {priority: 1000});
+    return updateUser;
+  }
+
+  async getAllPrioritizeWomen(): Promise<any>{
+    const AllWomen = await this.user_model.find(
+      {gender: GenderEnum.انثى, priority: {$gte:1, $lte:30}}
+      , {email: 1, phone: 1, priority: 1}
+    );
+    return AllWomen;
+  }
+  async getAllPrioritizeMen(): Promise<any>{
+    const AllMen = await this.user_model.find(
+      {gender: GenderEnum.ذكر, priority: {$gte:1, $lte:30}},
+      {email: 1, phone: 1, priority: 1}
+    );
+    return AllMen;
   }
 }

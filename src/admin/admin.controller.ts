@@ -1,17 +1,33 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, UseGuards } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+  Req, UploadedFiles,
+  UseGuards,
+  UseInterceptors
+} from "@nestjs/common";
 import { AdminGuard } from "../shared/guards/admin.guard";
 import { AdminService } from "./admin.service";
 import {CustomRequest} from "../shared/interfaces/custom-request.interface";
 import mongoose from "mongoose";
-import { RemovePendingRequestDto } from "./DTOs/removePendingRequest";
 import { WarningEmailDTO } from "./DTOs/warningEmail.DTO";
 import { SuperAdminGuard } from "../shared/guards/super.guard";
-import { AuthGuard } from "../shared/guards/auth.guard";
 import { PaginationDTO } from "../shared/DTOs/pagination.dto";
+import { BannerDto } from "./DTOs/banner.dto";
+import { FileFieldsInterceptor } from "@nestjs/platform-express";
+import { FirebaseService } from "../firebase/firebase.service";
 @UseGuards(AdminGuard)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly admin_Service: AdminService) {}
+  constructor(
+    private readonly admin_Service: AdminService,
+    private readonly firebaseService: FirebaseService,
+  ) {}
   @Get('notApprovedUsers')
   async notApprovedUsers(): Promise<any>{
     try{
@@ -99,6 +115,15 @@ export class AdminController {
     try{
       const connections = await this.admin_Service.getUsersSentRequests();
       return connections
+    }catch (error){
+      return error
+    }
+  }
+  @Get('removedPendingRequests')
+  async removedRequests(): Promise<any>{
+    try{
+      const requests = await this.admin_Service.getUsersRemovedRequests();
+      return requests
     }catch (error){
       return error
     }
@@ -242,6 +267,70 @@ export class AdminController {
     }catch (error){
       return error;
     }
+  }
+
+  @Delete("rejectedConnection/:senderID/:receiverID")
+  async deleteRejectedConnection(@Param("senderID") senderID: string,@Param("receiverID") receiverID: string ): Promise<any>{
+    try{
+      const deleteObject = await this.admin_Service.deleteRejectedConnection(senderID, receiverID);
+      return deleteObject;
+    }catch (err){
+      return err;
+    }
+  }
+
+  @Post("banner")
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'bannerImage', maxCount: 1 },
+  ]))
+  async createBanner(
+    @Body() bannerDto: BannerDto,
+    @UploadedFiles() files: {bannerImage: Express.Multer.File[]}): Promise<any>{
+    try{
+      const image = await this.firebaseService.uploadImageToCloud(files.bannerImage, `\`${bannerDto.title}\`/`);
+      bannerDto.image = image;
+      const banner = await this.admin_Service.createBanner(bannerDto);
+      return banner;
+    }catch (error){
+      return error;
+    }
+  }
+
+  @Delete("banner")
+  async deleteBanner(): Promise<any>{
+    try{
+      const deletedBanner = await this.admin_Service.deleteBanner();
+      return deletedBanner;
+    }catch (error){
+      return error;
+    }
+  }
+
+  @Post("updatePriority")
+  async updatePriority(@Body("phone") phone: string, @Body("priority") priority: number ): Promise<any>{
+    if(priority > 30 || priority < 1){
+      throw new BadRequestException("Priority number should be between 1 and 30");
+    }
+    const user = await this.admin_Service.updatePriority(phone, priority);
+    return user;
+  }
+
+  @Post("removePriority")
+  async removePriority(@Body("phone") phone: string ): Promise<any>{
+    const user = await this.admin_Service.removePriority(phone);
+    return user;
+  }
+
+  @Get("womenPriority")
+  async womenPriority(){
+    const users = await this.admin_Service.getAllPrioritizeWomen();
+    return users;
+  }
+
+  @Get("menPriority")
+  async menPriority(){
+    const users = await this.admin_Service.getAllPrioritizeMen();
+    return users;
   }
 }
 

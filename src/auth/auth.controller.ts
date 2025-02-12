@@ -38,14 +38,10 @@ import { UpdatePassByPhoneDto } from "./Dtos/updatePassByPhone.dto";
 export class AuthController {
   constructor(private readonly auth_service: AuthService, private readonly firebase_service: FirebaseService) {}
   @Post("signup")
-  async signup(@Body() signUpDto: SignupDto): Promise<string> {
-    await this.auth_service.initiateRegistration(signUpDto);
-    return "check your email";
-  }
-  @Post("verify")
-  async verify(@Body() verifyDto: VerifyDto, @Res() res: Response): Promise<void>{
+  async signup(@Body() signUpDto: SignupDto, @Res() res: Response) {
+    const verificationCode: string = await this.auth_service.initiateRegistration(signUpDto);
+    const verifyDto = {email: signUpDto.email, verification: verificationCode};
     const token: string = await this.auth_service.verify(verifyDto)
-    console.log(verifyDto.email)
     await this.auth_service.removeRegistrationData(verifyDto.email)
     res.cookie("jwt", token, {
       maxAge: 60 * 60 * 60 * 1000,
@@ -55,6 +51,19 @@ export class AuthController {
     });
     res.json({ token });
   }
+  // @Post("verify")
+  // async verify(@Body() verifyDto: VerifyDto, @Res() res: Response): Promise<void>{
+  //   const token: string = await this.auth_service.verify(verifyDto)
+  //   console.log(verifyDto.email)
+  //   await this.auth_service.removeRegistrationData(verifyDto.email)
+  //   res.cookie("jwt", token, {
+  //     maxAge: 60 * 60 * 60 * 1000,
+  //     sameSite: "none",
+  //     secure: true,
+  //     partitioned: true
+  //   });
+  //   res.json({ token });
+  // }
   // @Post('resendCode')
   // async resendCode(@Body('email') email: string): Promise<string>{
   //   try{
