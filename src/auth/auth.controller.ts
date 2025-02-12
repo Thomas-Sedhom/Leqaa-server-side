@@ -92,7 +92,6 @@ export class AuthController {
     @Res() res: Response
   ){
     try{
-      console.log(sprint1)
       await this.auth_service.sprint1(req.user._id, sprint1)
       res.json("sprint1 completed successfully")
     }catch (error){
